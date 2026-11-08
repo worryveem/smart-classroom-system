@@ -32,7 +32,7 @@ export default function HistoryPage() {
     tabButtons.current[next]?.focus()
   }
   return <div className="history-page">
-    <header className="history-heading"><div><p className="eyebrow">Tra cứu dữ liệu</p><h1>Lịch sử</h1><p>Theo dõi dữ liệu cảm biến và các thao tác điều khiển trong lớp học.</p></div>
+    <header className="history-heading"><div><h1>Lịch sử</h1><p>Theo dõi dữ liệu cảm biến và các thao tác điều khiển trong lớp học.</p></div>
       <button className="history-refresh" disabled={resource.loading || !valid} onClick={() => setRevisions(previous => ({ ...previous, [tab]: previous[tab] + 1 }))}><RefreshCw size={16} className={resource.loading ? 'spin' : ''} />Làm mới dữ liệu</button>
     </header>
     <div className="history-tabs" role="tablist" aria-label="Loại lịch sử">{[{ key: 'telemetry', label: 'Lịch sử cảm biến', icon: Activity }, { key: 'commands', label: 'Lịch sử điều khiển', icon: Terminal }].map(({ key, label, icon: Icon }, index) =>

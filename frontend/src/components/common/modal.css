@@ -1,16 +1,9 @@
-.app-modal { border: 1px solid #dfe9e8; border-radius: 15px; padding: 0; width: min(510px, calc(100vw - 32px)); max-height: calc(100dvh - 40px); margin: auto; color: #365362; background: #fff; box-shadow: 0 30px 100px #082b3c35; overflow-y: auto; }
-.app-modal::backdrop { background: #0f2b3c80; backdrop-filter: blur(3px); }
-.modal-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 24px 26px 22px; border-bottom: 1px solid #eaf0f1; }.modal-heading h2 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.5px; color: #2e4a59; }.modal-heading p { margin: 8px 0 0; font-size: 11px; color: #93a4af; line-height: 1.8; overflow-wrap: anywhere; }.modal-heading > button { background: transparent; border: 0; padding: 3px; color: #a4b3bc; border-radius: 4px; }
-.modal-actions { padding-top: 23px; border-top: 1px solid #edf2f3; margin-top: 23px; display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
-.secondary-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid #dce6e9; border-radius: 7px; padding: 11px 14px; color: #718d98; font-size: 11px; background: #fff; }.secondary-button:hover:not(:disabled) { background: #f5f9f7; border-color: #9fc2b5; }
-.danger-button { border: 1px solid #d89889; color: white; background: #b77464; font-size: 12px; font-weight: 500; border-radius: 7px; padding: 12px 17px; }.danger-button:hover:not(:disabled) { background: #a66454; }
-@media(max-width:600px) { .modal-heading { padding: 22px 20px; }.modal-heading h2 { font-size: 19px; } }
-.app-modal { border: 2px solid #9cabba; border-radius: 18px; box-shadow: 0 32px 100px #071d2e60, 0 10px 30px #071d2e38; }
-.modal-heading { padding: 28px 30px 25px; border-bottom: 2px solid #d0dae3; }
-.modal-heading h2 { color: #203d52; font-size: 25px; }
-.modal-heading p { color: #526a7b; font-size: 14px; }
-.modal-heading > button { min-width: 42px; min-height: 42px; border: 2px solid #aab9c7; border-radius: 9px; }
-.modal-actions { border-top: 2px solid #d0dae3; gap: 12px; }
-.secondary-button { min-height: 46px; border: 2px solid #9dadbb; border-radius: 9px; padding: 11px 16px; color: #3c5669; box-shadow: 0 3px 8px #20394e14; font-size: 14px; font-weight: 600; }
-.danger-button { min-height: 46px; border: 2px solid #8c4d42; border-radius: 9px; padding: 11px 18px; box-shadow: 0 4px 10px #793f342f; font-size: 14px; font-weight: 650; }
-@media(max-width:600px) { .modal-heading { padding: 20px; }.modal-heading h2 { font-size: 22px; } }
+.app-modal { border: 1px solid var(--line); border-radius: 16px; padding: 0; width: min(530px, calc(100vw - 32px)); max-height: calc(100dvh - 40px); margin: auto; color: var(--ink); background: white; box-shadow: 0 28px 90px #16215145; overflow-y: auto; }
+.app-modal::backdrop { background: #17234870; backdrop-filter: blur(4px); }
+.modal-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding: 25px 28px 22px; border-bottom: 1px solid var(--line); }
+.modal-heading h2 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -.6px; color: var(--ink); }
+.modal-heading p { margin: 9px 0 0; font-size: 12px; color: var(--muted); line-height: 1.8; overflow-wrap: anywhere; }
+.modal-heading > button { display: grid; place-items: center; min-width: 36px; min-height: 36px; padding: 7px; color: var(--muted); background: var(--canvas); border: 1px solid transparent; border-radius: 8px; }
+.modal-heading > button:hover:not(:disabled) { color: var(--primary); border-color: #b1bced; background: var(--primary-soft); }
+.modal-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+@media (max-width: 600px) { .modal-heading { padding: 21px 20px; gap: 12px; }.modal-heading h2 { font-size: 20px; }.modal-actions > button { font-size: 12px; } }

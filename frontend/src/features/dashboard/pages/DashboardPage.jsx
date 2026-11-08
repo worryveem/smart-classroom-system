@@ -23,7 +23,7 @@ export default function DashboardPage() {
   return (
     <div className="dashboard">
       <header className="dashboard-heading">
-        <div><p className="eyebrow">Không gian lớp học</p><h1>Tổng quan</h1><p>Theo dõi môi trường và điều khiển thiết bị trong lớp học.</p></div>
+        <div><h1>Tổng quan</h1><p>Theo dõi môi trường và điều khiển thiết bị trong lớp học.</p></div>
         <button className="dashboard-refresh" disabled={state.refreshing} onClick={state.refresh}><RefreshCw size={16} className={state.refreshing ? 'spin' : ''} />Làm mới trạng thái</button>
       </header>
       <div className="state-summary"><span className={`state-indicator ${stale ? 'state-error' : data ? 'state-ready' : ''}`}><Radio size={14} />{stale ? 'Mất kết nối dữ liệu IoT' : state.loading ? 'Đang đọc trạng thái' : 'Đã nhận State'}</span><span><Clock3 size={13} />{state.receivedAt ? `Lần đọc thành công: ${formatTime(state.receivedAt)}` : 'Chưa có lần đọc thành công'}</span></div>
@@ -38,12 +38,12 @@ export default function DashboardPage() {
       <div className="dashboard-columns">
         <TelemetryChart history={history} range={range} setRange={setRange} />
         <section className="dashboard-panel control-panel" aria-label="Điều khiển thiết bị">
-          <div className="panel-heading"><div><p className="eyebrow">Thiết bị trong lớp</p><h2>Điều khiển</h2></div><Activity size={19} color="#91aaa9" /></div>
+          <div className="panel-heading"><h2>Điều khiển</h2><Activity size={19} color="var(--primary)" aria-hidden="true" /></div>
           <p className="panel-subtitle">Bộ điều khiển <code>{ACTUATOR_ID}</code></p>
           <DeviceControl target="FAN" state={data} stale={actuatorStale} pending={pending} control={control} />
           <DeviceControl target="LIGHT" state={data} stale={actuatorStale} pending={pending} control={control} />
           {result && <div className={`command-result result-${result.tone}`} role="status" aria-live="polite"><strong>{result.target} · {result.action} · {result.status}</strong><p>{result.message}</p></div>}
-          <div className="auto-status"><Workflow size={20} /><div><strong>Chế độ AUTO <span>{data?.auto === true ? 'Đang bật' : data?.auto === false ? 'Đang tắt' : 'Chưa có trạng thái'}</span></strong><p>Chỉ hiển thị khi có dữ liệu. Chưa hỗ trợ chuyển chế độ từ giao diện.</p></div></div>
+          <div className="auto-status"><Workflow size={20} /><div><strong>Chế độ AUTO <span>{data?.auto === true ? 'Đang bật' : data?.auto === false ? 'Đang tắt' : 'Chưa có trạng thái'}</span></strong><p>Chế độ tự động của lớp học. Trạng thái được cập nhật từ thiết bị.</p></div></div>
         </section>
       </div>
       <footer className="sensor-source"><div><Activity size={16} /><span>Nguồn cảm biến <code>{SENSOR_ID}</code></span><ConnectionBadge connected={data?.sensorConnected} /></div><span>{data?.sensorTimestamp ? `Thời điểm State: ${formatTime(data.sensorTimestamp, true)}` : 'API chưa cung cấp thời điểm cập nhật của cảm biến'}</span></footer>

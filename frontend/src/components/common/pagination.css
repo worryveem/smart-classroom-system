@@ -1,9 +1,7 @@
-.table-pagination { border-top: 1px solid #eaf0f3; padding: 17px 23px; display: flex; justify-content: space-between; gap: 15px; flex-wrap: wrap; align-items: center; color: #9cabb4; font-size: 9px; }
-.table-pagination > p { margin: 0; }.table-pagination strong { font-weight: 550; color: #6d8b96; }.table-pagination > nav { display: flex; align-items: center; gap: 7px; }.table-pagination nav > span { padding: 0 7px; font-size: 10px; color: #8299a5; }.table-pagination button { display: grid; place-items: center; padding: 6px; border: 1px solid #e0e9ed; border-radius: 5px; background: #fff; color: #6e948a; }.table-pagination button:hover:not(:disabled) { background: #f0f7f3; border-color: #a8c5b9; }.table-pagination button:disabled { opacity: .35; cursor: not-allowed; }
-@media(max-width:600px) { .table-pagination { padding: 15px 18px; gap: 14px; }.table-pagination nav > span { padding: 0 3px; }.table-pagination button { padding: 5px; } }
-.table-pagination { min-height: 64px; border-top: 2px solid #c4d0dd; padding: 17px 25px; color: #4b6273; font-size: 12px; }
-.table-pagination strong { color: #334f63; }
-.table-pagination > nav { gap: 9px; }
-.table-pagination nav > span { color: #3d5669; font-size: 13px; }
-.table-pagination button { min-width: 38px; min-height: 38px; border: 2px solid #aebdcb; border-radius: 8px; box-shadow: 0 3px 7px #20394e10; }
-@media(max-width:600px) { .table-pagination { padding: 14px 16px; font-size: 11px; }.table-pagination button { min-width: 34px; min-height: 34px; } }
+.table-pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; min-height: 70px; padding: 16px 24px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
+.table-pagination > p { margin: 0; }.table-pagination strong { color: var(--ink); font-weight: 600; }
+.table-pagination > nav { display: flex; align-items: center; gap: 6px; }.table-pagination nav > span { padding: 0 6px; font-size: 11px; }
+.table-pagination button { display: grid; place-items: center; width: 34px; min-height: 34px; padding: 7px; color: var(--primary); background: white; border: 1px solid var(--line); border-radius: 7px; }
+.table-pagination button:hover:not(:disabled) { border-color: #b1bced; background: var(--primary-soft); }
+.table-pagination button:disabled { opacity: .4; }
+@media (max-width: 600px) { .table-pagination { padding: 15px 16px; font-size: 10px; gap: 13px; }.table-pagination > nav { gap: 4px; }.table-pagination nav > span { padding: 0 3px; font-size: 10px; }.table-pagination button { width: 32px; min-height: 36px; } }

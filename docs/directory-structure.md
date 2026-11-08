@@ -2,6 +2,10 @@
 
 ```text
 smartclass/
+├── .agents/
+│   └── skill/frontend-design/
+│       ├── SKILL.md
+│       └── LICENSE.txt
 ├── backend/
 │   ├── pom.xml
 │   ├── mvnw, mvnw.cmd, .mvn/wrapper/
@@ -26,7 +30,7 @@ smartclass/
 │   └── src/
 │       ├── main.jsx, App.jsx
 │       ├── app/router.jsx
-│       ├── assets/
+│       ├── assets/fonts/
 │       ├── components/common/, layout/, ui/
 │       ├── features/auth/pages/LoginPage.jsx
 │       ├── features/dashboard/pages/DashboardPage.jsx
@@ -38,9 +42,14 @@ smartclass/
 ├── docs/
 │   ├── architecture.md
 │   ├── directory-structure.md
+│   ├── frontend-design.md
 │   └── api-contract.md
 └── README.md
 ```
+
+## Skill hỗ trợ thiết kế giao diện
+
+`.agents/skill/frontend-design/` chứa skill `frontend-design` từ [anthropics/skills](https://github.com/anthropics/skills/tree/main/skills/frontend-design), được giới thiệu trên [skills.sh](https://www.skills.sh/anthropics/skills/frontend-design). `SKILL.md` được chuyển sang tiếng Việt theo quy ước dự án; `LICENSE.txt` giữ nguyên từ nguồn. Skill hướng dẫn lựa chọn định hướng thị giác, kiểu chữ, màu sắc, bố cục và nội dung khi xây dựng hoặc chỉnh sửa giao diện. Đường dẫn `.agents/skill` được dùng theo yêu cầu cài đặt của dự án.
 
 ## Backend
 
@@ -78,12 +87,14 @@ Bổ sung Database Layer:
 
 ## Frontend
 
+`docs/frontend-design.md` mô tả định hướng giao diện, hệ màu, bố cục thích ứng và phạm vi xác minh khi thiết kế lại Frontend theo skill `frontend-design`. CSS dùng chung nằm trong `styles/index.css`; các trang Dashboard, History, Admin và các thành phần Modal/Pagination tiếp tục dùng file CSS tương ứng.
+
 | Thư mục/file | Trách nhiệm |
 |---|---|
 | main.jsx | Gắn React vào DOM, nạp CSS |
 | App.jsx | Gắn AuthProvider và RouterProvider |
 | app/router.jsx | Khai báo routes; chuyển `/` và URL không khớp về `/dashboard` |
-| assets | Tài nguyên tĩnh |
+| assets | Tài nguyên tĩnh; `fonts/` chứa Be Vietnam Pro và giấy phép OFL, được phục vụ từ ứng dụng |
 | components/common | PlaceholderPage, guard đăng nhập/role và trạng thái xác thực |
 | components/layout | Bố cục, danh tính, menu theo role và Logout |
 | components/ui | Thành phần UI cơ bản cho giai đoạn sau |

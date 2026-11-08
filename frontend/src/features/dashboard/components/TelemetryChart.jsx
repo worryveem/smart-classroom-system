@@ -4,9 +4,9 @@ import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YA
 import { formatTime, stateError } from '../services/dashboardService.js'
 
 const series = [
-  { key: 'temp', name: 'Nhiệt độ', unit: '°C', color: '#db8357' },
-  { key: 'humid', name: 'Độ ẩm', unit: '%', color: '#508fc0' },
-  { key: 'lux', name: 'Ánh sáng', unit: 'Lux', color: '#c4a24e' },
+  { key: 'temp', name: 'Nhiệt độ', unit: '°C', color: '#bf5a36' },
+  { key: 'humid', name: 'Độ ẩm', unit: '%', color: '#4658d6' },
+  { key: 'lux', name: 'Ánh sáng', unit: 'Lux', color: '#9c731c' },
 ]
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
@@ -21,7 +21,7 @@ export default function TelemetryChart({ history, range, setRange }) {
   const selected = Object.values(visible).some(Boolean)
   return (
     <section className="dashboard-panel telemetry-panel" aria-label="Biểu đồ cảm biến">
-      <div className="panel-heading"><div><p className="eyebrow">Dữ liệu theo thời gian</p><h2>Diễn biến cảm biến</h2></div>
+      <div className="panel-heading"><h2>Diễn biến cảm biến</h2>
         <div className="chart-toolbar"><select aria-label="Khoảng thời gian" value={range} onChange={event => setRange(event.target.value)}>
           <option value="recent">50 mẫu gần nhất</option><option value="1h">1 giờ qua</option><option value="6h">6 giờ qua</option><option value="24h">24 giờ qua</option>
         </select><button className="icon-button" aria-label="Tải lại lịch sử" disabled={history.refreshing} onClick={history.refresh}><RefreshCw size={16} className={history.refreshing ? 'spin' : ''} /></button></div>
@@ -34,10 +34,10 @@ export default function TelemetryChart({ history, range, setRange }) {
           : !selected ? <div className="chart-empty"><p>Chọn ít nhất một thông số để xem biểu đồ.</p></div>
           : <ResponsiveContainer width="100%" height={280} minWidth={0}>
             <LineChart data={rows} margin={{ top: 12, right: 8, bottom: 5, left: -10 }} accessibilityLayer>
-              <CartesianGrid stroke="#edf0f3" strokeDasharray="4 4" vertical={false} />
-              <XAxis dataKey="time" type="number" domain={['dataMin', 'dataMax']} tickFormatter={value => formatTime(value)} tick={{ fontSize: 10, fill: '#91a0ab' }} axisLine={false} tickLine={false} minTickGap={45} />
-              <YAxis yAxisId="main" hide={!visible.temp && !visible.humid} tick={{ fontSize: 10, fill: '#91a0ab' }} axisLine={false} tickLine={false} width={48} />
-              <YAxis yAxisId="lux" orientation="right" hide={!visible.lux} tick={{ fontSize: 10, fill: '#a29266' }} axisLine={false} tickLine={false} width={48} unit=" lx" />
+              <CartesianGrid stroke="#e5e9f3" strokeDasharray="4 4" vertical={false} />
+              <XAxis dataKey="time" type="number" domain={['dataMin', 'dataMax']} padding={{ left: 8, right: 8 }} tickFormatter={value => formatTime(value)} tick={{ fontSize: 10, fill: '#65718a' }} axisLine={false} tickLine={false} minTickGap={45} />
+              <YAxis yAxisId="main" hide={!visible.temp && !visible.humid} tick={{ fontSize: 10, fill: '#65718a' }} axisLine={false} tickLine={false} width={48} />
+              <YAxis yAxisId="lux" orientation="right" hide={!visible.lux} tick={{ fontSize: 10, fill: '#916015' }} axisLine={false} tickLine={false} width={48} unit=" lx" />
               <Tooltip content={<ChartTooltip />} />
               {series.filter(item => visible[item.key]).map(item => <Line key={item.key} dataKey={item.key} name={item.name} yAxisId={item.key === 'lux' ? 'lux' : 'main'} stroke={item.color} strokeWidth={2.2} dot={rows.length < 8 ? { r: 3 } : false} activeDot={{ r: 5 }} isAnimationActive={false} connectNulls={false} type="linear" />)}
             </LineChart>
