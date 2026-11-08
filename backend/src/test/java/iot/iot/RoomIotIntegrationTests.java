@@ -48,6 +48,20 @@ class RoomIotIntegrationTests {
         db.update("UPDATE classroom_settings SET sensor_device_id='node1_sensor' WHERE id=1");
         admin=login("admin","Admin@12345"); teacher=login("teacher","Teacher@12345"); student=login("student","Student@12345");
     }
+    @Test void registeredDevicesAreScopedToTheirRoomWithoutEnablingUnconfiguredHardware() throws Exception {
+        db.update("INSERT INTO devices(device_id,room_id,type,status) VALUES ('inventory_room102',102,'SENSOR','Active')");
+        try {
+            mvc.perform(get("/api/iot/rooms/102").header("Authorization",admin)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.iotEnabled").value(false))
+                .andExpect(jsonPath("$.data.devices.length()").value(1))
+                .andExpect(jsonPath("$.data.devices[0].device_id").value("inventory_room102"));
+            mvc.perform(get("/api/iot/rooms/101").header("Authorization",admin)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.devices[*].device_id").value(org.hamcrest.Matchers.hasItems("node1_sensor","node2_actuator")))
+                .andExpect(jsonPath("$.data.devices[*].device_id").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("inventory_room102"))));
+            mvc.perform(get("/api/iot/rooms/102/state").header("Authorization",admin)).andExpect(status().isConflict());
+            assertTrue(STUB.calls.isEmpty());
+        } finally { db.update("DELETE FROM devices WHERE device_id='inventory_room102'"); }
+    }
     @Test void roomsWithoutHardwareAndUnknownRoomsNeverReachNodeRed() throws Exception {
         mvc.perform(get("/api/iot/rooms/102").header("Authorization",admin)).andExpect(status().isOk())
             .andExpect(jsonPath("$.data.id").value(102)).andExpect(jsonPath("$.data.iotEnabled").value(false)).andExpect(jsonPath("$.data.sensorId").isEmpty());

@@ -52,14 +52,14 @@ export default function LoginPage() {
       <aside className="login-story" aria-label="Giới thiệu SmartClass">
         <a className="brand story-brand" href="/login"><span className="brand-mark"><School size={23} /></span>SmartClass<span className="iot-tag">IoT</span></a>
         <div className="story-copy">
-          <p className="story-kicker"><span /> Không gian học tập kết nối</p>
-          <h1>Lớp học thông minh.<br /><span>Khởi đầu từ kết nối.</span></h1>
-          <p>Một không gian quản lý tập trung cho lớp học, thiết bị và dữ liệu của bạn.</p>
+          <h1>Một góc nhìn.<br />Cả lớp học.</h1>
+          <p>Từ ánh sáng đến không khí, theo dõi môi trường học tập và điều khiển thiết bị ngay trong một không gian.</p>
         </div>
         <div className="classroom-visual" aria-hidden="true">
-          <div className="visual-orbit orbit-one" /><div className="visual-orbit orbit-two" />
-          <div className="room-board"><School size={38} strokeWidth={1.3} /><span>SMART CLASSROOM</span><div className="board-line" /><div className="board-line short" /></div>
+          <div className="room-plan" />
+          <div className="room-board"><School size={16} strokeWidth={1.5} /><span>Lớp học</span></div>
           <div className="room-desk desk-one" /><div className="room-desk desk-two" /><div className="room-desk desk-three" />
+          <div className="room-desk desk-four" /><div className="room-desk desk-five" /><div className="room-desk desk-six" />
           <div className="sensor-node node-one"><Activity size={22} /><span>Cảm biến</span></div>
           <div className="sensor-node node-two"><Lightbulb size={22} /><span>Thiết bị</span></div>
           <div className="sensor-node node-three"><Wifi size={22} /><span>Kết nối</span></div>
@@ -70,7 +70,6 @@ export default function LoginPage() {
         <div className="login-topline"><span>Cổng truy cập hệ thống</span><span className="version-badge">SmartClass IoT</span></div>
         <section className="login-card" aria-labelledby="login-title">
           <span className="welcome-icon"><LockKeyhole size={26} strokeWidth={1.7} /></span>
-          <p className="eyebrow">Chào mừng trở lại</p>
           <h2 id="login-title">Đăng nhập SmartClass</h2>
           <p className="login-description">Sử dụng tài khoản được cấp để truy cập không gian lớp học của bạn.</p>
           {reason === 'expired' && <p className="notice" role="status">Phiên đăng nhập đã hết hạn hoặc không còn hợp lệ. Vui lòng đăng nhập lại.</p>}

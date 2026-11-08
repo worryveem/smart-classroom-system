@@ -19,6 +19,8 @@ async function setup(page, role = 'ADMIN') {
     if (method === 'OPTIONS') return reply(null)
     const body = request.postDataJSON(); state.calls.push({ path, method, params, body })
     if (path === '/api/auth/me') return reply({ id: 1, username: 'building_fixture', role })
+    if (/^\/api\/iot\/rooms\/\d+$/.test(path)) { const id=Number(path.split('/').at(-1)); const room=state.rooms.find(room => room.id === id); return reply({ ...room, iotEnabled: id === 101, devices: [], incidentSummary: [] }) }
+    if (/^\/api\/building\/rooms\/\d+\/impact$/.test(path)) return reply(state.impact || [])
     if (state.fail) return reply(null, 503, 'Không đọc được Nhà A')
     if (path === '/api/building/overview') return reply({ building: 'Nhà A', asOf: '2026-11-08T19:00:00', from: params.from || '2026-11-08T19:00:00', to: params.to || '2026-11-08T20:00:00', rooms: state.rooms.map(room => ({ ...room, available_in_window: params.from && room.id === 101 ? false : room.available_in_window })), summary: { total: state.rooms.length, inUse: state.rooms.filter(r => r.usage_status === 'IN_USE').length, available: state.rooms.filter(r => r.usage_status === 'AVAILABLE').length, unavailable: state.rooms.filter(r => r.status !== 'ACTIVE').length, pending: 0 } })
     if (path === '/api/building/rooms' && method === 'POST') {
@@ -91,6 +93,22 @@ test('admin maintains a room with required reason and reads its audit history', 
   await page.getByRole('article', { name: 'Phòng 101', exact: true }).getByRole('button', { name: 'Quản lý', exact: true }).click()
   await page.getByRole('button', { name: 'Nhật ký thay đổi' }).click()
   await expect(page.getByRole('dialog', { name: 'Nhật ký phòng 101', exact: true })).toContainText('Đổi trạng thái bảo trì')
+})
+
+test('maintenance requires explicit cancellation of affected bookings', async ({ page }) => {
+  const state = await setup(page)
+  state.impact = [{ id: 9, title: 'Ca bị ảnh hưởng', owner_name: 'teacher', starts_at: '2026-11-10T08:00:00', ends_at: '2026-11-10T09:00:00' }]
+  await page.getByRole('article', { name: 'Phòng 101', exact: true }).getByRole('button', { name: 'Quản lý', exact: true }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByLabel('Trạng thái vận hành').selectOption('MAINTENANCE')
+  await dialog.getByLabel('Lý do bảo trì / ghi chú').fill('Sửa điện')
+  await expect(dialog.getByText('Ca bị ảnh hưởng', { exact: true })).toBeVisible()
+  await dialog.getByRole('button', { name: 'Lưu phòng', exact: true }).click()
+  expect(state.calls.some(call => call.method === 'PUT')).toBe(false)
+  await dialog.getByRole('checkbox').check()
+  await dialog.getByRole('button', { name: 'Lưu phòng', exact: true }).click()
+  await expect(page.getByRole('article', { name: 'Phòng 101', exact: true })).toContainText('Đang bảo trì')
+  expect(state.calls.find(call => call.method === 'PUT').params.cancelAffectedBookings).toBe('true')
 })
 
 test('creating a duplicate room preserves form and students cannot manage rooms', async ({ page }) => {

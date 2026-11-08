@@ -1,5 +1,34 @@
 # Kiểm thử tích hợp SmartClass IoT
 
+## Sửa nghiệp vụ và giao diện ba vai trò — 08/11/2026
+
+- Backend: toàn bộ 128 bài với MySQL trên database riêng đạt, không bỏ qua. Sau đó nhóm `RoleWorkflowIntegrationTests` và `BuildingMigrationTests` có 8 bài đạt, gồm bài mới bảo vệ thiết bị đang cấu hình; tổng 129 bài khác nhau đạt qua các lượt.
+- Frontend: 71 bài giao diện khác nhau đạt qua lượt toàn bộ và lượt chạy lại nhóm History/Overview. Các bài mới bao gồm hàng đợi duyệt có xác nhận, lịch giáo viên trên di động, theo dõi sự cố sinh viên, sửa lịch giữ dữ liệu khi 409, xác nhận hủy lịch khi bảo trì, chặn tab lệnh cho sinh viên và bỏ bộ lọc người gửi khác cho giáo viên. Bài CRUD Backend thật tùy chọn chưa bật trong lượt này.
+- Build Frontend và đóng gói Backend thành công; Backend đã khởi động lại trên 8080, áp dụng Flyway V4. Frontend tiếp tục chạy trên 5173.
+- API thật sau khởi động: ADMIN/TEACHER đọc workspace và nhật ký theo quyền; STUDENT nhận 403 ở nhật ký lệnh, vẫn đọc được workspace và Tổng quan.
+- Đã xem ảnh Tổng quan STUDENT trên desktop và lịch cá nhân TEACHER ở 390 px; không tràn ngang. Quyền/cấu hình phụ của trang phòng không còn chặn tải dữ liệu tab chính.
+- Không gửi lệnh vật lý hoặc tạo lịch/sự cố mẫu trên database chính. Các kiểm thử thay đổi nghiệp vụ dùng database `smartclass_verify_*` và Node-RED stub.
+- Báo cáo lịch cũ chưa có cấu hình lưu vẫn ghi rõ giới hạn. Luồng Node-RED nhiều ESP, email/push, chuyển lịch đã duyệt hàng loạt và phân trang toàn bộ danh sách chưa nằm trong lượt triển khai; xem [luồng hiện tại](luong-nghiep-vu-theo-vai-tro.md).
+
+## Tổng quan toàn dãy nhà và thiết bị theo phòng — 08/11/2026
+
+- `/dashboard` dùng dữ liệu tổng hợp toàn dãy nhà; trang gốc và mọi vai trò đăng nhập mặc định vào Tổng quan. Giữ các đường dẫn quản lý phòng, lịch, IoT, lịch sử và quản trị.
+- Chọn phòng trước khi đọc cảm biến hoặc điều khiển; bảng IoT không còn được gắn trực tiếp vào `/dashboard` với ngữ cảnh 101 mặc định. Metadata phòng bổ sung danh sách thiết bị thuộc phòng; ADMIN có liên kết quản trị giữ bộ lọc phòng.
+- Frontend: `npm run build` thành công; toàn bộ lượt Playwright dùng Edge có 64 bài đạt, 6 bài tích hợp tùy chọn bỏ qua. Chạy riêng 5 bài đọc Backend thật trên origin 5173: đăng nhập/CORS/tải lại/đăng xuất cho ADMIN, TEACHER, STUDENT; IoT theo phòng và History đều đạt. Bài CRUD thật vẫn chưa bật trong lượt này.
+- Backend: toàn bộ 121 bài với MySQL trên database `smartclass_verify_*` riêng đạt, không bỏ qua. Sau khi bổ sung bài kiểm thử danh sách thiết bị, chạy lại nhóm `RoomIotIntegrationTests`: 6 bài đạt, gồm bài mới; xác minh thiết bị không xuất hiện ở phòng khác và đăng ký thiết bị chưa tích hợp không mở truy cập Node-RED.
+- Đóng gói Backend thành công và đã khởi động lại tại 8080. Kiểm tra API thật: Tổng quan có 15 phòng, metadata phòng 101 có 2 thiết bị. Frontend hoạt động tại 5173.
+- Đã xem ảnh Tổng quan trên màn hình 390 px, không tràn ngang. Các kiểm thử còn kiểm tra chuyển phòng khi State cũ đang chờ, quyền điều khiển, ACK và chống tự gửi lại lệnh.
+- Không gửi lệnh vật lý vào hệ thống chính. Luồng Node-RED vẫn cấu hình một bộ điều khiển với FAN/LIGHT; chưa xác minh mở rộng nhiều bộ điều khiển ESP độc lập hoặc ACK phần cứng thật. Database kiểm thử dùng Node-RED stub.
+
+## Xử lý xung đột Git — 08/11/2026
+
+- Hợp nhất 34 tệp xung đột, giữ quản lý Nhà A, lịch và vận hành phòng, IoT theo phòng, xác thực, phân quyền, lịch sử và quản trị; kết hợp giao diện mới, phông cục bộ và liên kết bỏ qua điều hướng bằng bàn phím.
+- Khôi phục nội dung tài liệu API, kiến trúc và bài kiểm thử Node-RED bị trống trong bản đang hợp nhất. Giữ các kiểm tra lịch đã duyệt và nhật ký lần điều khiển.
+- `npm run build`: thành công.
+- `backend/mvnw.cmd clean verify`: thành công, đóng gói JAR; 121 bài kiểm thử, 80 đạt, 41 bỏ qua vì chưa cấu hình database kiểm thử MySQL riêng.
+- Kiểm thử trình duyệt dùng Edge: 62 bài đạt, 6 bài tích hợp Backend thật bỏ qua vì chưa bật cấu hình tương ứng. Chạy trong `frontend/` với `$env:SMARTCLASS_BROWSER_CHANNEL='msedge'; npm test`. Chromium mặc định của Playwright chưa được cài trong môi trường này.
+- Chưa xác minh lại tích hợp MySQL, Node-RED và ESP32 thật trong lượt xử lý xung đột. Các kết quả bên dưới là lịch sử, không thay thế kết quả của lượt này.
+
 ## Quản lý Nhà A — 08/11/2026
 
 Kết quả hiện tại sau khi mở rộng Nhà A; các mục V2/Prompt 11 bên dưới là kết quả lịch sử.

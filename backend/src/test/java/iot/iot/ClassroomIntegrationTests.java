@@ -108,6 +108,8 @@ class ClassroomIntegrationTests {
         assertEquals(1,db.queryForObject("SELECT COUNT(*) FROM classroom_alerts WHERE ended_at IS NULL",Integer.class));
         long offline=db.queryForObject("SELECT id FROM classroom_alerts",Long.class);
         mvc.perform(post("/api/classroom/alerts/"+offline+"/acknowledge").header("Authorization",student)).andExpect(status().isForbidden());
+        mvc.perform(post("/api/classroom/alerts/"+offline+"/acknowledge").header("Authorization",teacher)).andExpect(status().isForbidden());
+        db.update("INSERT INTO classroom_bookings(owner_id,owner_name,title,starts_at,ends_at,status,room_id) SELECT id,username,'Ca trực',?,?,'APPROVED',101 FROM users WHERE username='teacher'",ClassroomService.now().minusMinutes(5),ClassroomService.now().plusMinutes(30));
         mvc.perform(post("/api/classroom/alerts/"+offline+"/acknowledge").header("Authorization",teacher)).andExpect(status().isOk());
         var now=ClassroomService.now().withNano(0);
         for(int seconds:new int[]{180,120,60,0}) db.update("INSERT INTO telemetry(device_id,temp,lux,occupancy,`timestamp`) VALUES ('node1_sensor',35,80,1,?)",now.minusSeconds(seconds));

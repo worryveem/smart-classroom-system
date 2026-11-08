@@ -19,6 +19,7 @@ public class ClassroomController {
         return ResponseEntity.ok().header("Cache-Control","no-store").body(ApiResponse.ok("Thành công",data));
     }
     @GetMapping("/settings") public Object settings() { return ok(service.settings()); }
+    @GetMapping("/workspace") public Object workspace(@AuthenticationPrincipal CustomUserDetails actor) { return ok(service.workspace(actor)); }
     @PutMapping("/settings") public Object settings(@Valid @RequestBody Settings input,@AuthenticationPrincipal CustomUserDetails actor) { return ok(service.updateSettings(input,actor)); }
     @GetMapping("/permission") public Object permission(@AuthenticationPrincipal CustomUserDetails actor,@RequestParam(defaultValue="101") int roomId) { return ok(service.permission(actor,roomId)); }
     @GetMapping("/bookings") public Object bookings(
@@ -26,6 +27,7 @@ public class ClassroomController {
         @RequestParam(required=false) @DateTimeFormat(iso=DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
         @RequestParam(defaultValue="101") int roomId) { return ok(service.bookings(from,to,roomId)); }
     @PostMapping("/bookings") public Object createBooking(@Valid @RequestBody BookingInput input,@AuthenticationPrincipal CustomUserDetails actor) { return ok(service.createBooking(input,actor)); }
+    @PutMapping("/bookings/{id}") public Object editBooking(@PathVariable long id,@Valid @RequestBody BookingInput input,@AuthenticationPrincipal CustomUserDetails actor) { return ok(service.editBooking(id,input,actor)); }
     @PatchMapping("/bookings/{id}") public Object decision(@PathVariable long id,@Valid @RequestBody BookingDecision input,@AuthenticationPrincipal CustomUserDetails actor) { return ok(service.decide(id,input,actor)); }
     @GetMapping("/bookings/{id}/report") public Object report(@PathVariable long id,@AuthenticationPrincipal CustomUserDetails actor) { return ok(service.report(id,actor)); }
     @GetMapping("/alerts") public Object alerts(@RequestParam(defaultValue="101") int roomId) { return ok(service.alerts(roomId)); }

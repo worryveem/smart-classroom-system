@@ -1,6 +1,18 @@
 # Dashboard và dữ liệu IoT
 
-Route `/dashboard` dùng Authentication/ProtectedRoute hiện có. React chỉ gọi Spring Boot, không gọi Node-RED hoặc MQTT trực tiếp. Không thay đổi Backend, database, flow hoặc firmware trong giai đoạn này.
+## Luồng hiện tại: dãy nhà → phòng → thiết bị
+
+Route `/dashboard` là tổng quan toàn dãy nhà cho mọi vai trò sau đăng nhập: số phòng, tình hình sử dụng, lịch chờ, sự cố, cảnh báo và các phòng theo tầng. Trang gọi `GET /api/building/overview`, tự cập nhật mỗi 15 giây, giữ và đánh dấu dữ liệu cũ khi lỗi. Không đọc State hoặc phát lệnh cho phòng mặc định.
+
+Mỗi phòng có liên kết `/classroom?roomId=...` để vận hành và `/iot/rooms/:roomId` để xem cảm biến, danh sách thiết bị và điều khiển. `/building` dành cho tìm, quản lý phòng; `/iot` dành cho chọn phòng theo trang bị IoT. Các đường dẫn cũ vẫn được giữ.
+
+`GET /api/iot/rooms/:roomId` bổ sung `devices` gồm `device_id`, `type`, `status`, chỉ lấy thiết bị thuộc phòng. ADMIN mở quản trị từ đây sẽ vào tab thiết bị với bộ lọc phòng tương ứng. Trạng thái đăng ký không phải bằng chứng thiết bị đang trực tuyến.
+
+Trang IoT dùng API có ngữ cảnh `/api/iot/rooms/:roomId/state`, `/telemetry`, `/control` và ID do Backend trả về. Không mặc định chọn phòng 101 nếu thiếu cấu hình phòng. Phòng chưa tích hợp vẫn xem được danh sách thiết bị đăng ký, nhưng không gọi State hoặc Control.
+
+Giới hạn tích hợp hiện tại: Backend/Node-RED vẫn cấu hình một bộ điều khiển tại 101 với FAN/LIGHT. Việc mở rộng điều khiển nhiều bộ ESP độc lập cần bổ sung định tuyến theo thiết bị và đối chiếu flow/ACK thật; giao diện không coi việc đăng ký thêm thiết bị là đã tích hợp thành công. Không thay đổi schema, flow hoặc firmware trong lượt này.
+
+React chỉ gọi Spring Boot, không gọi Node-RED hoặc MQTT trực tiếp. Các mục bên dưới ghi nhận cơ chế IoT và API tương thích từ Dashboard cũ; giao diện hiện dùng API theo phòng như trên.
 
 ## API và cấu hình
 

@@ -79,7 +79,7 @@ Copy-Item .env.example .env.local
 npm run dev
 ```
 
-Mở http://localhost:5173. Nếu cổng bận, dùng tạm `npm run dev -- --port 5174` và thêm origin tương ứng vào `CORS_ALLOWED_ORIGINS` của Backend. Frontend gọi API Spring Boot tại 8080. Các route: `/login`, `/building`, `/classroom?roomId=101`, `/dashboard`, `/history`, `/admin`. Trang gốc mở Nhà A; Dashboard chỉ theo dõi IoT phòng 101.
+Mở http://localhost:5173. Nếu cổng bận, dùng tạm `npm run dev -- --port 5174` và thêm origin tương ứng vào `CORS_ALLOWED_ORIGINS` của Backend. Frontend gọi API Spring Boot tại 8080. Các route: `/login`, `/dashboard`, `/building`, `/classroom?roomId=101`, `/iot`, `/iot/rooms/101`, `/history`, `/admin`. Trang gốc và đăng nhập không có đường dẫn quay lại mở Tổng quan toàn dãy nhà tại `/dashboard`. Chọn một phòng để mở lịch/vận hành hoặc cảm biến/thiết bị; không còn mặc định đọc IoT phòng 101 từ Tổng quan.
 
 ```powershell
 npm run build

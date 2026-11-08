@@ -95,3 +95,19 @@ Frontend đọc danh sách tại `data.content`, phân trang tại `data.page`, 
 Maven `clean verify` thành công: 80 test, không lỗi, không bỏ qua; kiểm thử lịch sử dùng database MySQL tách biệt. Đã đối chiếu JSON qua HTTP/JWT với 1 bản ghi telemetry và 1 bản ghi lệnh `RULE_ENGINE` hiện có trong `smartclass_db`, kể cả timestamp, bộ lọc và mã lỗi 400/401; dữ liệu lịch sử giữ nguyên sau kiểm tra. Ứng dụng kiểm tra HTTP tắt seeder và Flyway, sau đó đã dừng.
 
 Chưa xác nhận được nguồn ghi từ flow Node-RED thực vì dịch vụ tại `localhost:1880` đang offline. Test sử dụng SQL theo hợp đồng bảng dùng chung để kiểm chứng cách Spring Boot đọc dữ liệu, không khẳng định đã kiểm tra flow thực.
+## Bổ sung metadata thiết bị theo phòng
+
+`GET /api/iot/rooms/{roomId}` yêu cầu JWT và trả metadata phòng hiện có cùng mảng `devices`, gồm `device_id`, `type`, `status`. Danh sách chỉ chứa thiết bị có `room_id` trùng phòng đang chọn; không trả MAC hoặc thông tin tài khoản. Phòng không tồn tại trả 404.
+
+`iotEnabled`, `sensorId`, `actuatorId` tiếp tục thể hiện luồng IoT đang được cấu hình. Một thiết bị nằm trong danh sách đăng ký không tự làm `iotEnabled=true`; quyền đọc State và điều khiển vẫn được kiểm tra tại Backend. Tổng quan tại `/dashboard` của Frontend sử dụng `GET /api/building/overview`, không tự đọc State phòng 101.
+## Chính sách quyền và API nghiệp vụ cập nhật
+
+- `GET /api/commands`: ADMIN xem toàn hệ thống; TEACHER chỉ xem lệnh của mình, kể cả khi truyền `triggerBy` khác; STUDENT nhận 403.
+- `GET /api/classroom/workspace`: công việc theo người đăng nhập; ADMIN nhận lịch chờ duyệt, TEACHER nhận lịch của mình, STUDENT không có danh sách lịch cá nhân. Sự cố được giới hạn theo vai trò.
+- `PUT /api/classroom/bookings/{id}`: sửa PENDING còn hạn, chỉ chủ lịch/ADMIN; giữ hạn duyệt cũ hoặc rút ngắn theo giờ bắt đầu mới.
+- `GET /api/building/rooms/{id}/impact`: ADMIN xem các lịch bị ảnh hưởng bởi bảo trì/tạm ngưng.
+- `PUT /api/building/rooms/{id}?cancelAffectedBookings=true`: xác nhận hủy lịch bị ảnh hưởng cùng giao dịch đổi trạng thái phòng; mặc định không có xác nhận sẽ trả 409 nếu tồn tại lịch.
+- `GET /api/classroom/permission`: thêm `canAcknowledge` độc lập với `allowed` gửi lệnh. Backend kiểm tra lại khi xác nhận cảnh báo.
+- `GET /api/iot/rooms/{id}`: thêm `incidentSummary` gồm thiết bị, trạng thái và tổng số báo cáo đang mở, không có mô tả/người báo.
+
+Lịch trả thêm `expires_at`, có thể mang trạng thái EXPIRED. Chi tiết [vòng đời lịch và ma trận quyền](luong-nghiep-vu-theo-vai-tro.md).

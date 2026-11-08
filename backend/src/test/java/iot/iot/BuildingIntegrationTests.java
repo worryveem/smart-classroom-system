@@ -110,11 +110,13 @@ class BuildingIntegrationTests {
     @Test void maintenanceBlocksBookingApprovalAndControlButPreservesHistory() throws Exception {
         var start=ClassroomService.now().plusDays(1).withNano(0);
         long id=call(post("/api/classroom/bookings"),teacher,booking(101,start,start.plusHours(1),20),200).path("data").path("id").asLong();
-        call(put("/api/building/rooms/101"),admin,room(101,"MAINTENANCE",40),200);
+        call(put("/api/building/rooms/101"),admin,room(101,"MAINTENANCE",40),409);
+        assertEquals(1,call(get("/api/building/rooms/101/impact"),admin,null,200).path("data").size());
+        call(put("/api/building/rooms/101?cancelAffectedBookings=true"),admin,room(101,"MAINTENANCE",40),200);
         call(patch("/api/classroom/bookings/"+id),admin,Map.of("status","APPROVED","note","Duyệt"),409);
         call(post("/api/classroom/bookings"),admin,booking(101,start.plusHours(2),start.plusHours(3),20),409);
         call(post("/api/control"),admin,Map.of("target","LIGHT","action","OFF"),403);
-        assertEquals("PENDING",db.queryForObject("SELECT status FROM classroom_bookings WHERE id=?",String.class,id));
+        assertEquals("CANCELLED",db.queryForObject("SELECT status FROM classroom_bookings WHERE id=?",String.class,id));
         assertEquals("MAINTENANCE",find(overview(start,start.plusHours(1)),101).path("usage_status").asText());
         assertEquals(1,call(get("/api/building/rooms/101/events"),admin,null,200).path("data").size());
     }
@@ -127,7 +129,7 @@ class BuildingIntegrationTests {
         call(post("/api/classroom/bookings"),admin,booking(401,start,start.plusHours(1),51),400);
         call(post("/api/classroom/bookings"),admin,booking(401,start,start.plusHours(1),45),200);
         call(put("/api/building/rooms/401"),admin,room(401,"ACTIVE",40),409);
-        call(put("/api/building/rooms/401"),admin,room(401,"INACTIVE",50),200);
+        call(put("/api/building/rooms/401?cancelAffectedBookings=true"),admin,room(401,"INACTIVE",50),200);
         assertEquals(2,call(get("/api/building/rooms/401/events"),admin,null,200).path("data").size());
     }
     @Test void nonIotReportsAndIncidentsNeverBorrow101SensorOrDevice() throws Exception {

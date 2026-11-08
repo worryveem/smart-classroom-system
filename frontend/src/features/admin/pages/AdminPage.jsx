@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { AlertCircle, CheckCircle2, Cpu, Plus, RefreshCw, Users } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext.jsx'
 import { useQueryResource } from '../../../hooks/useQueryResource.js'
@@ -14,7 +15,8 @@ const defaults = { users: { username: '', page: 0, size: '20' }, devices: { room
 
 export default function AdminPage() {
   const auth = useAuth()
-  const [tab, setTab] = useState('users'), [filters, setFilters] = useState({ users: { ...defaults.users }, devices: { ...defaults.devices } })
+  const [searchParams] = useSearchParams()
+  const [tab, setTab] = useState(() => searchParams.get('tab') === 'devices' ? 'devices' : 'users'), [filters, setFilters] = useState(() => ({ users: { ...defaults.users }, devices: { ...defaults.devices, roomId: /^[1-9]\d{0,8}$/.test(searchParams.get('roomId') || '') ? searchParams.get('roomId') : '' } }))
   const [revisions, setRevisions] = useState({ users: 0, devices: 0 }), [dialog, setDialog] = useState(null), [notice, setNotice] = useState('')
   const refs = useRef([])
   const current = filters[tab], users = tab === 'users'
@@ -47,7 +49,7 @@ export default function AdminPage() {
     setTab(next ? 'devices' : 'users'); refs.current[next]?.focus()
   }
   return <div className="admin-page">
-    <header className="admin-heading"><div><p className="eyebrow">Không gian quản trị</p><h1>Quản trị</h1><p>Quản lý tài khoản và thiết bị của hệ thống SmartClass.</p></div><div className="admin-toolbar"><button className="secondary-button" disabled={list.loading || !valid} onClick={refresh}><RefreshCw size={15} className={list.loading ? 'spin' : ''} />Làm mới</button><button className="primary-button" disabled={denied} onClick={() => setDialog({ kind: 'form', mode: 'create', scope: tab })}><Plus size={16} />{users ? 'Thêm tài khoản' : 'Thêm thiết bị'}</button></div></header>
+    <header className="admin-heading"><div><h1>Quản trị</h1><p>Quản lý tài khoản và thiết bị của hệ thống SmartClass.</p></div><div className="admin-toolbar"><button className="secondary-button" disabled={list.loading || !valid} onClick={refresh}><RefreshCw size={15} className={list.loading ? 'spin' : ''} />Làm mới</button><button className="primary-button" disabled={denied} onClick={() => setDialog({ kind: 'form', mode: 'create', scope: tab })}><Plus size={16} />{users ? 'Thêm tài khoản' : 'Thêm thiết bị'}</button></div></header>
     <div className="admin-tabs" role="tablist" aria-label="Quản lý hệ thống">{[{ key: 'users', label: 'Người dùng', icon: Users }, { key: 'devices', label: 'Thiết bị', icon: Cpu }].map(({ key, label, icon: Icon }, index) => <button key={key} ref={node => { refs.current[index] = node }} role="tab" id={`admin-tab-${key}`} aria-controls={`admin-panel-${key}`} aria-selected={tab === key} tabIndex={tab === key ? 0 : -1} onKeyDown={event => tabKey(event, index)} onClick={() => setTab(key)}><Icon size={17} />{label}</button>)}</div>
     {notice && <p className="admin-notice" role="status"><CheckCircle2 size={16} />{notice}</p>}
     <section role="tabpanel" id={`admin-panel-${tab}`} aria-labelledby={`admin-tab-${tab}`}>
@@ -64,7 +66,7 @@ export default function AdminPage() {
         <ManagementTable scope={tab} rows={list.data?.rows ?? []} loading={list.loading} invalid={!valid} error={list.error} currentUser={auth.user} open={setDialog} disabled={list.loading || denied} />
         <Pagination data={list.data} loading={list.loading} label={users ? 'Phân trang người dùng' : 'Phân trang thiết bị'} setPage={page => setFilters(previous => ({ ...previous, [tab]: { ...previous[tab], page } }))} />
       </section>
-      <p className="admin-bottom-note">Quyền và ràng buộc dữ liệu do Backend kiểm tra. Ngày tạo hiển thị theo giờ Việt Nam (UTC+07).</p>
+      <p className="admin-bottom-note">Mọi thay đổi được lưu vào hệ thống. Ngày tạo hiển thị theo giờ Việt Nam (UTC+07).</p>
     </section>
     {dialog?.kind === 'form' && <AdminFormModal key={`${dialog.scope}-${dialog.mode}-${dialog.id || 'new'}`} dialog={dialog} currentUser={auth.user} onClose={() => setDialog(null)} onComplete={complete} />}
     {dialog?.kind === 'delete' && <DeleteConfirmModal dialog={dialog} onClose={() => setDialog(null)} onComplete={complete} />}

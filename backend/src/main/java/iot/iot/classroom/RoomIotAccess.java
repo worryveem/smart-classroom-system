@@ -20,6 +20,8 @@ public class RoomIotAccess {
         room.put("iotEnabled",roomId==101);
         room.put("sensorId",roomId==101?sensorId():null);
         room.put("actuatorId",roomId==101?properties.actuatorDeviceId():null);
+        room.put("devices",db.queryForList("SELECT device_id,type,status FROM devices WHERE room_id=? ORDER BY type,device_id",roomId));
+        room.put("incidentSummary",db.queryForList("SELECT device_id,status,COUNT(*) AS total FROM classroom_incidents WHERE room_id=? AND status<>'RESOLVED' GROUP BY device_id,status",roomId));
         return room;
     }
     public void requireInstalled(int roomId) {

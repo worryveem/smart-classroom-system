@@ -1,5 +1,9 @@
 # Database Layer — Prompt 2
 
+## Flyway V4: hạn duyệt và cấu hình theo ca
+
+V4 bổ sung `classroom_bookings.expires_at`, chỉ mục phục vụ hết hạn, trạng thái EXPIRED và bảng `classroom_booking_context` liên kết theo lịch. Không xóa lịch hoặc sửa các bảng IoT do Node-RED sử dụng. Lịch chờ cũ được tính hạn từ ngày tạo và giờ bắt đầu; tác vụ chạy sẽ đánh dấu lịch quá hạn. Lịch đã duyệt cũ không được gán cấu hình quá khứ suy đoán; báo cáo ghi rõ trường hợp chưa có bản cấu hình lưu. Quy tắc tại [luồng nghiệp vụ theo vai trò](luong-nghiep-vu-theo-vai-tro.md).
+
 ## Cập nhật schema nghiệp vụ Nhà A
 
 V1 giữ bốn bảng IoT ban đầu. V2 bổ sung sáu bảng vận hành phòng. V3 tạo `classroom_rooms`, `classroom_room_events`, thêm khóa ngoại `room_id` cho dữ liệu nghiệp vụ, gán bản ghi cũ vào 101 và bổ sung `expected_attendees`. Migration không sinh dữ liệu cảm biến và không sửa bảng Node-RED đang dùng. Mô hình hiện tại và quy tắc dữ liệu tại [quản lý Nhà A](building-a.md).

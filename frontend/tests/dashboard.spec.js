@@ -26,14 +26,15 @@ async function setup(page, options = {}) {
     if (request.method() === 'OPTIONS') return route.fulfill({ status: 200, headers })
     state.calls.push({ path: url.pathname, params: Object.fromEntries(url.searchParams), method: request.method(), body: request.postDataJSON(), authorization: request.headers().authorization })
     let status = 200, data
+    if (url.pathname === '/api/iot/rooms/101') return route.fulfill({ status: 200, headers, contentType: 'application/json', body: JSON.stringify({ success: true, data: { id: 101, name: 'Ph?ng 101', iotEnabled: true, sensorId: 'node1_sensor', actuatorId: 'node2_actuator', devices: [] } }) })
     if (url.pathname === '/api/auth/me') data = { id: 91, username: 'dashboard_fixture', role: 'TEACHER' }
     else if (url.pathname === '/api/classroom/permission') data = { allowed: state.permissionAllowed !== false, reason: state.permissionAllowed === false ? 'Bạn cần lịch đã duyệt đang trong giờ sử dụng' : 'Đang trong ca được cấp quyền', bookingId: 1 }
-    else if (url.pathname === '/api/state') {
+    else if (url.pathname === '/api/iot/rooms/101/state') {
       if (state.stateWait) await state.stateWait
       status = state.status; data = state.payload
-    } else if (url.pathname === '/api/telemetry') {
+    } else if (['/api/telemetry', '/api/iot/rooms/101/telemetry'].includes(url.pathname)) {
       status = state.historyStatus; data = state.history
-    } else if (url.pathname === '/api/control') {
+    } else if (url.pathname === '/api/iot/rooms/101/control') {
       if (state.controlWait) await state.controlWait
       if (state.controlAbort) return route.abort('failed')
       status = state.controlStatus
@@ -45,7 +46,7 @@ async function setup(page, options = {}) {
 }
 const calls = (state, path) => state.calls.filter(call => call.path === path)
 async function ready(page) {
-  await page.goto('/dashboard')
+  await page.goto('/iot/rooms/101')
   await expect(page.getByRole('article', { name: 'Nhiệt độ', exact: true })).toContainText('29,5')
 }
 
@@ -54,7 +55,7 @@ test('teacher without an approved active booking cannot send physical commands',
   await ready(page)
   await expect(page.getByText('Bạn cần lịch đã duyệt đang trong giờ sử dụng')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Bật FAN', exact: true })).toBeDisabled()
-  expect(calls(state, '/api/control')).toHaveLength(0)
+  expect(calls(state, '/api/iot/rooms/101/control')).toHaveLength(0)
 })
 
 test.beforeEach(async ({ page }) => {
@@ -76,7 +77,7 @@ test('shows sensor values, explicit connections, AUTO and chronological real cha
   await expect(page.locator('.recharts-line')).toHaveCount(3)
   const mapped = await page.evaluate(async () => {
     const { fetchTelemetry } = await import('/src/features/dashboard/services/dashboardService.js')
-    return (await fetchTelemetry('recent')).rows.map(row => ({ temp: row.temp, timestamp: row.timestamp, time: row.time }))
+    return (await fetchTelemetry('recent', undefined, { roomId: 101, sensorId: 'node1_sensor', actuatorId: 'node2_actuator' })).rows.map(row => ({ temp: row.temp, timestamp: row.timestamp, time: row.time }))
   })
   expect(mapped.map(row => row.temp)).toEqual([27, 28, 29.5])
   expect(mapped[0].time).toBe(Date.parse('2026-11-08T09:10:00+07:00'))
@@ -86,13 +87,13 @@ test('shows sensor values, explicit connections, AUTO and chronological real cha
   await page.getByRole('checkbox', { name: /Ánh sáng/ }).uncheck()
   await expect(page.locator('.recharts-line')).toHaveCount(2)
   await page.getByLabel('Khoảng thời gian').selectOption('1h')
-  await expect.poll(() => calls(state, '/api/telemetry').at(-1).params.from).toBeTruthy()
-  const params = calls(state, '/api/telemetry').at(-1).params
-  expect(params.deviceId).toBe('node1_sensor'); expect(params.limit).toBe('500')
+  await expect.poll(() => calls(state, '/api/iot/rooms/101/telemetry').at(-1).params.from).toBeTruthy()
+  const params = calls(state, '/api/iot/rooms/101/telemetry').at(-1).params
+  expect(params.deviceId).toBeUndefined(); expect(params.limit).toBe('500')
   expect(params.from).toMatch(/^\d{4}-\d{2}-\d{2}T/)
   expect(Date.parse(params.to) - Date.parse(params.from)).toBe(3600000)
   expect(state.calls.every(call => call.authorization === `Bearer ${fixtureToken}`)).toBe(true)
-  expect(calls(state, '/api/control')).toHaveLength(0)
+  expect(calls(state, '/api/iot/rooms/101/control')).toHaveLength(0)
 })
 
 test('polling is sequential, coalesces refreshes, pauses in background and stops on navigation', async ({ page }) => {
@@ -101,29 +102,29 @@ test('polling is sequential, coalesces refreshes, pauses in background and stops
   await ready(page)
   let release
   state.stateWait = new Promise(resolve => { release = resolve })
-  const before = calls(state, '/api/state').length
+  const before = calls(state, '/api/iot/rooms/101/state').length
   await page.clock.fastForward(4100)
-  await expect.poll(() => calls(state, '/api/state').length).toBe(before + 1)
+  await expect.poll(() => calls(state, '/api/iot/rooms/101/state').length).toBe(before + 1)
   await page.clock.fastForward(20000)
-  expect(calls(state, '/api/state')).toHaveLength(before + 1)
-  expect(calls(state, '/api/telemetry')).toHaveLength(1)
+  expect(calls(state, '/api/iot/rooms/101/state')).toHaveLength(before + 1)
+  expect(calls(state, '/api/iot/rooms/101/telemetry')).toHaveLength(1)
   state.stateWait = null; release()
   await expect(page.getByRole('button', { name: 'Làm mới trạng thái' })).toBeEnabled()
   await page.evaluate(() => { Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' }); document.dispatchEvent(new Event('visibilitychange')) })
-  const paused = calls(state, '/api/state').length
+  const paused = calls(state, '/api/iot/rooms/101/state').length
   await page.clock.fastForward(40000)
-  expect(calls(state, '/api/state')).toHaveLength(paused)
+  expect(calls(state, '/api/iot/rooms/101/state')).toHaveLength(paused)
   await page.evaluate(() => { Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' }); document.dispatchEvent(new Event('visibilitychange')) })
-  await expect.poll(() => calls(state, '/api/state').length).toBe(paused + 1)
+  await expect.poll(() => calls(state, '/api/iot/rooms/101/state').length).toBe(paused + 1)
   const historyRead = page.waitForRequest(request => request.url().includes('/api/telemetry?') && new URL(request.url()).searchParams.get('limit') === '100')
   await page.getByRole('link', { name: 'Lịch sử', exact: true }).click()
   await page.clock.runFor(500)
   await historyRead
   await expect(page.locator('.history-table tbody tr')).toHaveCount(3)
-  const stopped = calls(state, '/api/state').length
+  const stopped = calls(state, '/api/iot/rooms/101/state').length
   const stoppedHistory = calls(state, '/api/telemetry').length
   await page.clock.fastForward(40000)
-  expect(calls(state, '/api/state')).toHaveLength(stopped)
+  expect(calls(state, '/api/iot/rooms/101/state')).toHaveLength(stopped)
   expect(calls(state, '/api/telemetry')).toHaveLength(stoppedHistory)
 })
 
@@ -133,7 +134,7 @@ test('four commands use exact bodies, ACKs do not optimistically change state, a
   let release
   state.controlWait = new Promise(resolve => { release = resolve })
   await page.getByRole('button', { name: 'Bật FAN', exact: true }).click()
-  await expect.poll(() => calls(state, '/api/control').length).toBe(1)
+  await expect.poll(() => calls(state, '/api/iot/rooms/101/control').length).toBe(1)
   await expect(page.getByRole('button', { name: 'Tắt LIGHT', exact: true })).toBeDisabled()
   await expect(page.getByRole('article', { name: 'Điều khiển FAN' }).locator('.device-value')).toHaveText('OFF')
   state.controlWait = null; release()
@@ -158,7 +159,7 @@ test('four commands use exact bodies, ACKs do not optimistically change state, a
   await page.getByRole('button', { name: 'Bật LIGHT', exact: true }).click()
   await expect(page.locator('.command-result')).toContainText('SUCCESS')
   await expect(page.locator('.command-result')).toContainText('Không lưu được lịch sử')
-  expect(calls(state, '/api/control').map(call => call.body)).toEqual([
+  expect(calls(state, '/api/iot/rooms/101/control').map(call => call.body)).toEqual([
     { target: 'FAN', action: 'ON' }, { target: 'FAN', action: 'OFF' }, { target: 'LIGHT', action: 'OFF' }, { target: 'LIGHT', action: 'ON' },
   ])
 })
@@ -173,7 +174,7 @@ for (const outcome of ['SUCCESS', 'ACCEPTED']) test(`ACK ${outcome} for a differ
   await expect(page.locator('.command-result')).toHaveClass(/result-warning/)
   await expect(page.getByRole('article', { name: 'Điều khiển FAN' }).locator('.device-value')).toHaveText('OFF')
   await page.clock.fastForward(15000)
-  expect(calls(state, '/api/control').map(call => call.body)).toEqual([{ target: 'FAN', action: 'ON' }])
+  expect(calls(state, '/api/iot/rooms/101/control').map(call => call.body)).toEqual([{ target: 'FAN', action: 'ON' }])
 })
 
 test('timeout and network errors never retry commands automatically', async ({ page }) => {
@@ -183,12 +184,12 @@ test('timeout and network errors never retry commands automatically', async ({ p
   await page.getByRole('button', { name: 'Bật FAN', exact: true }).click()
   await expect(page.locator('.command-result')).toContainText('TIMEOUT')
   await page.clock.fastForward(15000)
-  expect(calls(state, '/api/control')).toHaveLength(1)
+  expect(calls(state, '/api/iot/rooms/101/control')).toHaveLength(1)
   state.controlAbort = true
   await page.getByRole('button', { name: 'Tắt LIGHT', exact: true }).click()
   await expect(page.locator('.command-result')).toContainText('UNCONFIRMED')
   await page.clock.fastForward(15000)
-  expect(calls(state, '/api/control')).toHaveLength(2)
+  expect(calls(state, '/api/iot/rooms/101/control')).toHaveLength(2)
 })
 
 test('errors keep stale state visibly marked; empty history, unknown AUTO and offline controls are safe', async ({ page }) => {
@@ -214,7 +215,7 @@ test('errors keep stale state visibly marked; empty history, unknown AUTO and of
 
 test('missing or unfamiliar fields are not coerced to zeros, false occupancy or online status', async ({ page }) => {
   const { state } = await setup(page, { payload: { unexpected: true } })
-  await page.goto('/dashboard')
+  await page.goto('/iot/rooms/101')
   await expect(page.getByRole('alert')).toContainText('Chưa nhận diện được cấu trúc State')
   await expect(page.getByRole('article', { name: 'Nhiệt độ', exact: true }).locator('.sensor-value')).toHaveText('—')
   await expect(page.getByRole('article', { name: 'Chuyển động PIR' }).locator('.sensor-value')).toHaveText('—')
@@ -241,13 +242,13 @@ for (const payload of [
 ]) {
   test(`state from a different device never enables configured actuator controls: ${payload.device_id ? 'flat' : 'keyed'}`, async ({ page }) => {
     const { state } = await setup(page, { payload })
-    await page.goto('/dashboard')
+    await page.goto('/iot/rooms/101')
     await expect(page.locator('.state-summary')).toContainText('Đã nhận State')
     await expect(page.getByRole('article', { name: 'Điều khiển FAN' }).locator('.device-value')).toHaveText('Chưa rõ')
     await expect(page.getByRole('button', { name: 'Bật FAN', exact: true })).toBeDisabled()
     await expect(page.getByRole('button', { name: 'Tắt LIGHT', exact: true })).toBeDisabled()
     await expect(page.locator('.auto-status')).toContainText('Chưa có trạng thái')
-    expect(calls(state, '/api/control')).toHaveLength(0)
+    expect(calls(state, '/api/iot/rooms/101/control')).toHaveLength(0)
   })
 }
 
@@ -262,7 +263,7 @@ test('desktop, tablet and mobile layouts fit; AUTO has no command action', async
     await expect(page.getByRole('button', { name: 'Bật FAN', exact: true })).toBeVisible()
   }
   await page.screenshot({ path: 'test-results/dashboard-mobile.png', fullPage: true })
-  expect(calls(state, '/api/control')).toHaveLength(0)
+  expect(calls(state, '/api/iot/rooms/101/control')).toHaveLength(0)
   await page.getByRole('button', { name: 'Đăng xuất' }).click()
   await expect(page).toHaveURL(/\/login$/)
 })
@@ -272,13 +273,15 @@ test('real Spring Boot telemetry and state unavailability are displayed without 
   const username = process.env.AUTH_TEACHER_USERNAME, password = process.env.AUTH_TEACHER_PASSWORD
   if (!username || !password) throw new Error('Set teacher test credentials in the environment')
   const outbound = []
-  page.on('request', request => { if (request.url().includes('/api/control')) outbound.push(request) })
+  page.on('request', request => { if (request.url().includes('/api/iot/rooms/101/control')) outbound.push(request) })
   await page.goto('/login')
   await page.getByLabel('Tên đăng nhập', { exact: true }).fill(username)
   await page.getByLabel('Mật khẩu', { exact: true }).fill(password)
-  const telemetryResponse = page.waitForResponse(response => response.url().includes('/api/telemetry?') && response.request().method() === 'GET')
-  const stateResponse = page.waitForResponse(response => response.url().endsWith('/api/state') && response.request().method() === 'GET')
+  const telemetryResponse = page.waitForResponse(response => response.url().includes('/api/iot/rooms/101/telemetry?') && response.request().method() === 'GET')
+  const stateResponse = page.waitForResponse(response => response.url().endsWith('/api/iot/rooms/101/state') && response.request().method() === 'GET')
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click()
+  await expect(page).toHaveURL(/\/dashboard$/)
+  await page.goto('/iot/rooms/101')
   const history = await telemetryResponse, current = await stateResponse
   expect(history.status()).toBe(200)
   const rows = (await history.json()).data

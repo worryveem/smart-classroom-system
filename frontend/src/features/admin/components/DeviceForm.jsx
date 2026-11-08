@@ -1,8 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { api } from '../../../services/api/client.js'
 import { statusLabels, statuses, types } from '../services/adminService.js'
 import { FormActions, FormField } from './AdminFormFields.jsx'
 
 export default function DeviceForm({ initial, busy, onSave, onClose }) {
+  const [rooms, setRooms] = useState([])
+  useEffect(() => {
+    const controller = new AbortController()
+    api.get('/api/building/rooms', { signal: controller.signal }).then(({ data }) => { if (!controller.signal.aborted && Array.isArray(data.data)) setRooms(data.data) }).catch(() => {})
+    return () => controller.abort()
+  }, [])
   const [values, setValues] = useState({ deviceId: initial?.device_id || '', roomId: initial ? String(initial.room_id) : '', type: initial?.type || 'SENSOR', macAddress: initial?.mac_address || '', status: initial?.status || 'ACTIVE' })
   const [errors, setErrors] = useState({})
   const change = (name, value) => { setValues(previous => ({ ...previous, [name]: value })); setErrors(previous => ({ ...previous, [name]: '' })) }
@@ -24,7 +31,9 @@ export default function DeviceForm({ initial, busy, onSave, onClose }) {
   return <form onSubmit={submit} noValidate className="admin-form">
     <FormField label="Device ID" name="deviceId" value={values.deviceId} onChange={change} error={errors.deviceId} disabled={busy || Boolean(initial)} maxLength={50} data-autofocus={!initial || undefined} />
     {initial && <p className="admin-form-note">Device ID là định danh cố định và không thể thay đổi.</p>}
+    <label className="admin-room-choice">Chọn nhanh phòng học<select aria-label="Chọn nhanh phòng học" disabled={busy} value={rooms.some(r => String(r.id) === values.roomId) ? values.roomId : ''} onChange={e => change('roomId', e.target.value)}><option value="">Chọn tầng và phòng…</option>{rooms.map(room => <option key={room.id} value={room.id}>Tầng {room.floor_number} · Phòng {room.id} · {room.name}</option>)}</select></label>
     <FormField label="Room ID" name="roomId" type="number" min={1} max={2147483647} step={1} value={values.roomId} onChange={change} error={errors.roomId} disabled={busy} data-autofocus={Boolean(initial) || undefined} />
+    <p className="admin-form-note">Đăng ký thiết bị chưa tự tạo kết nối IoT. Thiết bị đang cấu hình hoặc gắn với ca đã duyệt được bảo vệ khi chuyển phòng/xóa. Trạng thái Active không đồng nghĩa đang trực tuyến.</p>
     <div className="admin-form-columns"><FormField label="Type" name="type" value={values.type} onChange={change} error={errors.type} disabled={busy} options={types.map(type => ({ value: type, label: type }))} />
       <FormField label="Status" name="status" value={values.status} onChange={change} error={errors.status} disabled={busy} options={statuses.map(status => ({ value: status, label: statusLabels[status] }))} /></div>
     <FormField label="MAC Address (không bắt buộc)" name="macAddress" value={values.macAddress} onChange={change} error={errors.macAddress} disabled={busy} placeholder="AA:BB:CC:DD:EE:FF" maxLength={17} />

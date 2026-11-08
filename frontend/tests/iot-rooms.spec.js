@@ -6,7 +6,7 @@ async function setup(page) {
   const token = `${encode({ alg: 'HS256' })}.${encode({ sub: 'iot_fixture', userId: 1, role: 'ADMIN', exp: Math.floor(Date.now() / 1000) + 3600 })}.test-only`
   await page.addInitScript(token => sessionStorage.setItem('smartclass.accessToken', token), token)
   const state = { calls: [], wait: null, role: 'ADMIN', allowed: true }
-  const rooms = [1, 2, 3].flatMap(f => Array.from({ length: 5 }, (_, i) => ({ id: f * 100 + i + 1, floor_number: f, name: `Phòng ${f * 100 + i + 1}`, capacity: 40, status: 'ACTIVE', sensor_status: 'NO_DATA' })))
+  const rooms = [1, 2, 3].flatMap(f => Array.from({ length: 5 }, (_, i) => ({ id: f * 100 + i + 1, floor_number: f, name: `Phòng ${f * 100 + i + 1}`, capacity: 40, status: 'ACTIVE', iot_enabled: f === 1 && i === 0, sensor_status: f === 1 && i === 0 ? 'NO_DATA' : 'NOT_CONNECTED' })))
   await page.route('http://localhost:8080/api/**', async route => {
     const request = route.request(), url = new URL(request.url()), path = url.pathname, method = request.method()
     const reply = (data, status = 200, message = 'Thành công') => route.fulfill({ status, headers, contentType: 'application/json', body: JSON.stringify({ success: status < 400, data, message }) }).catch(() => {})
@@ -19,7 +19,7 @@ async function setup(page) {
     if (!match) return reply(null, 404)
     const id = Number(match[1]), action = match[2], room = rooms.find(r => r.id === id)
     if (!room) return reply(null, 404, 'Không tìm thấy phòng trong Nhà A')
-    if (!action) return reply({ ...room, iotEnabled: id === 101, sensorId: id === 101 ? 'sensor_101' : null, actuatorId: id === 101 ? 'relay_101' : null })
+    if (!action) return reply({ ...room, iotEnabled: id === 101, sensorId: id === 101 ? 'sensor_101' : null, actuatorId: id === 101 ? 'relay_101' : null, devices: id === 101 ? [{ device_id: 'sensor_101', type: 'SENSOR', status: 'Active' }, { device_id: 'relay_101', type: 'ACTUATOR', status: 'Active' }] : [] })
     if (id !== 101) return reply(null, 409, 'Phòng chưa kết nối IoT')
     if (action === 'state') {
       if (state.wait) await state.wait
@@ -36,7 +36,7 @@ test('IoT navigation lists all rooms and filters by floor or installation', asyn
   await page.goto('/iot')
   await expect(page.getByRole('heading', { name: 'Điều khiển IoT', exact: true })).toBeVisible()
   await expect(page.locator('.iot-room-link')).toHaveCount(15)
-  await expect(page.getByRole('link', { name: 'Điều khiển IoT', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Thiết bị theo phòng', exact: true })).toBeVisible()
   await expect(page.getByRole('link', { name: 'IoT phòng 101', exact: true })).toHaveCount(0)
   await page.getByLabel('Tầng', { exact: true }).selectOption('2')
   await expect(page.locator('.iot-room-link')).toHaveCount(5)
@@ -64,6 +64,10 @@ test('room 101 uses room-scoped APIs and device IDs supplied by Backend', async 
   await page.goto('/iot/rooms/101')
   await expect(page.getByRole('heading', { name: 'IoT phòng 101', exact: true })).toBeVisible()
   await expect(page.getByRole('article', { name: 'Nhiệt độ', exact: true })).toContainText('29,5')
+  const inventory = page.getByRole('region', { name: 'Danh sách thiết bị phòng 101' })
+  await expect(inventory).toContainText('sensor_101')
+  await expect(inventory).toContainText('relay_101')
+  await expect(inventory.getByRole('link', { name: 'Quản lý thiết bị' })).toHaveAttribute('href', '/admin?tab=devices&roomId=101')
   await expect(page.getByRole('button', { name: 'Bật FAN', exact: true })).toBeEnabled()
   await page.getByRole('button', { name: 'Bật FAN', exact: true }).click()
   await expect(page.locator('.command-result')).toContainText('Thiết bị đã xác nhận thực thi lệnh')

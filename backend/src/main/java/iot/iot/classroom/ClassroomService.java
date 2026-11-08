@@ -31,7 +31,32 @@ public class ClassroomService {
         if (actor.getRole() == UserRole.STUDENT) throw new AccessDeniedException("Forbidden");
     }
     private void lockRoom() { db.queryForObject("SELECT id FROM classroom_settings WHERE id=1 FOR UPDATE", Integer.class); }
-    public Map<String,Object> settings() { return db.queryForMap("SELECT * FROM classroom_settings WHERE id=1"); }
+    @org.springframework.scheduling.annotation.Scheduled(fixedDelay=30000)
+    @Transactional
+    public void expirePendingBookings() {
+        lockRoom();
+        db.update("UPDATE classroom_bookings SET status='EXPIRED',decision_note='Hết thời hạn duyệt' WHERE status='PENDING' AND COALESCE(expires_at,starts_at)<=?",now());
+    }
+    public Map<String,Object> workspace(CustomUserDetails actor) {
+        var time=now();
+        boolean isAdmin=actor.getRole()==UserRole.ADMIN;
+        var bookings=actor.getRole()==UserRole.STUDENT?List.of():db.queryForList(
+            "SELECT b.*,r.name AS room_name,r.status AS room_status FROM classroom_bookings b JOIN classroom_rooms r ON r.id=b.room_id WHERE "
+            +(isAdmin?"b.status='PENDING' AND COALESCE(b.expires_at,b.starts_at)>?":"b.owner_id=? AND b.ends_at>? AND (b.status<>'PENDING' OR COALESCE(b.expires_at,b.starts_at)>?)")
+            +" ORDER BY b.starts_at,b.id LIMIT 100",isAdmin?new Object[]{time}:new Object[]{actor.getId(),time,time});
+        var incidents=db.queryForList("SELECT id,room_id,title,status FROM classroom_incidents WHERE status<>'RESOLVED'"+(isAdmin?"":" AND reporter_id=?")+" ORDER BY id DESC LIMIT 100",isAdmin?new Object[]{}:new Object[]{actor.getId()});
+        return Map.of("bookings",bookings,"incidents",incidents,"bookingLimit",100,"incidentLimit",100);
+    }
+    private void captureContext(long id,int roomId) {
+        var config=settings();
+        db.update("INSERT INTO classroom_booking_context(booking_id,sensor_device_id,temperature_limit,minimum_lux) VALUES (?,?,?,?)",
+            id,roomId==101?config.get("sensor_device_id"):null,config.get("temperature_limit"),config.get("minimum_lux"));
+    }
+    public Map<String,Object> settings() {
+        var config=db.queryForMap("SELECT * FROM classroom_settings WHERE id=1");
+        config.put("name",building.requireRoom(101).get("name"));
+        return config;
+    }
     @Transactional
     public Map<String,Object> updateSettings(Settings input, CustomUserDetails actor) {
         admin(actor); lockRoom();
@@ -73,7 +98,7 @@ public class ClassroomService {
     }
     @Transactional
     public Map<String,Object> createBooking(BookingInput input, CustomUserDetails actor) {
-        staff(actor); lockRoom();
+        staff(actor); lockRoom(); expirePendingBookings();
         int selected=roomId(input.roomId()); var room=building.requireAvailableRoom(selected);
         int attendees=input.expectedAttendees()==null?1:input.expectedAttendees();
         if(attendees>((Number)room.get("capacity")).intValue()) throw new AdminOperationException(BAD_REQUEST,"Sĩ số vượt sức chứa của phòng");
@@ -83,11 +108,27 @@ public class ClassroomService {
         rejectOverlap(input.startsAt(),input.endsAt(),0,selected,actor.getId());
         long id=insert("INSERT INTO classroom_bookings(owner_id,owner_name,title,starts_at,ends_at,room_id,expected_attendees) VALUES (?,?,?,?,?,?,?)",
             actor.getId(),actor.getUsername(),input.title().trim(),input.startsAt(),input.endsAt(),selected,attendees);
+        db.update("UPDATE classroom_bookings SET expires_at=LEAST(DATE_ADD(?,INTERVAL 24 HOUR),starts_at) WHERE id=?",now(),id);
+        return booking(id);
+    }
+    @Transactional
+    public Map<String,Object> editBooking(long id,BookingInput input,CustomUserDetails actor) {
+        staff(actor); lockRoom(); expirePendingBookings(); var row=booking(id);
+        long owner=((Number)row.get("owner_id")).longValue();
+        if(actor.getRole()!=UserRole.ADMIN && owner!=actor.getId()) throw new AccessDeniedException("Forbidden");
+        if(!row.get("status").equals("PENDING")) throw new AdminOperationException(CONFLICT,"Chỉ sửa lịch đang chờ duyệt và chưa hết hạn");
+        int selected=roomId(input.roomId()); var room=building.requireAvailableRoom(selected);
+        int attendees=input.expectedAttendees()==null?1:input.expectedAttendees();
+        if(attendees>((Number)room.get("capacity")).intValue() || !input.startsAt().isAfter(now()) || !input.endsAt().isAfter(input.startsAt()) || Duration.between(input.startsAt(),input.endsAt()).compareTo(Duration.ofHours(12))>0)
+            throw new AdminOperationException(BAD_REQUEST,"Kiểm tra sức chứa, giờ bắt đầu ở tương lai và thời lượng tối đa 12 giờ");
+        rejectOverlap(input.startsAt(),input.endsAt(),id,selected,owner);
+        db.update("UPDATE classroom_bookings SET title=?,starts_at=?,ends_at=?,room_id=?,expected_attendees=?,expires_at=LEAST(expires_at,?),decision_note='' WHERE id=?",
+            input.title().trim(),input.startsAt(),input.endsAt(),selected,attendees,input.startsAt(),id);
         return booking(id);
     }
     @Transactional
     public Map<String,Object> decide(long id, BookingDecision input, CustomUserDetails actor) {
-        lockRoom(); var row=booking(id); String status=(String)row.get("status");
+        lockRoom(); expirePendingBookings(); var row=booking(id); String status=(String)row.get("status");
         boolean owner=((Number)row.get("owner_id")).longValue()==actor.getId();
         if(input.status()==Decision.CANCELLED) { if(!owner && actor.getRole()!=UserRole.ADMIN) throw new AccessDeniedException("Forbidden"); }
         else admin(actor);
@@ -101,12 +142,19 @@ public class ClassroomService {
             rejectOverlap(time(row.get("starts_at")),time(row.get("ends_at")),id,selected,((Number)row.get("owner_id")).longValue());
         }
         db.update("UPDATE classroom_bookings SET status=?,decision_note=? WHERE id=?",input.status().name(),input.note().trim(),id);
+        if(input.status()==Decision.APPROVED) captureContext(id,((Number)row.get("room_id")).intValue());
         return booking(id);
     }
     public Map<String,Object> permission(CustomUserDetails actor) {
         return permission(actor,101);
     }
     public Map<String,Object> permission(CustomUserDetails actor,int roomId) {
+        var result=new HashMap<String,Object>(controlPermission(actor,roomId));
+        boolean canAcknowledge=actor.getRole()==UserRole.ADMIN || (actor.getRole()==UserRole.TEACHER && db.queryForObject("SELECT COUNT(*) FROM classroom_bookings WHERE owner_id=? AND room_id=? AND status='APPROVED' AND starts_at<=? AND ends_at>?",Integer.class,actor.getId(),roomId,now(),now())>0);
+        result.put("canAcknowledge",canAcknowledge);
+        return result;
+    }
+    private Map<String,Object> controlPermission(CustomUserDetails actor,int roomId) {
         var room=building.requireRoom(roomId);
         if(roomId!=101) return Map.of("allowed",false,"reason","Phòng chưa kết nối thiết bị IoT; không hỗ trợ điều khiển","bookingId",0);
         if(!room.get("status").equals("ACTIVE")) return Map.of("allowed",false,"reason","Phòng 101 đang bảo trì hoặc tạm ngưng sử dụng","bookingId",0);
@@ -159,20 +207,26 @@ public class ClassroomService {
     @Transactional
     public void acknowledge(long id, CustomUserDetails actor) {
         staff(actor);
+        if(actor.getRole()!=UserRole.ADMIN) {
+            var rows=db.queryForList("SELECT room_id FROM classroom_alerts WHERE id=?",id);
+            if(rows.isEmpty() || db.queryForObject("SELECT COUNT(*) FROM classroom_bookings WHERE owner_id=? AND room_id=? AND status='APPROVED' AND starts_at<=? AND ends_at>?",Integer.class,actor.getId(),rows.get(0).get("room_id"),now(),now())==0)
+                throw new AccessDeniedException("Chỉ giáo viên đang có ca được duyệt tại phòng mới được xác nhận cảnh báo");
+        }
         if(db.update("UPDATE classroom_alerts SET acknowledged_at=CURRENT_TIMESTAMP,acknowledged_by=? WHERE id=? AND acknowledged_at IS NULL",actor.getUsername(),id)==0)
             throw new AdminOperationException(CONFLICT,"Cảnh báo không tồn tại hoặc đã được xác nhận");
     }
     public Map<String,Object> report(long id, CustomUserDetails actor) {
         var row=booking(id); staff(actor);
         if(actor.getRole()!=UserRole.ADMIN && ((Number)row.get("owner_id")).longValue()!=actor.getId()) throw new AccessDeniedException("Forbidden");
-        var config=settings();
+        var contexts=db.queryForList("SELECT * FROM classroom_booking_context WHERE booking_id=?",id);
+        var config=contexts.isEmpty()?settings():contexts.get(0);
         boolean iot=((Number)row.get("room_id")).intValue()==101;
-        var stats=db.queryForMap("SELECT COUNT(*) AS samples,AVG(temp) AS average_temp,MIN(temp) AS minimum_temp,MAX(temp) AS maximum_temp,AVG(humid) AS average_humid,AVG(lux) AS average_lux,COALESCE(SUM(CASE WHEN temp>? THEN 1 ELSE 0 END),0) AS hot_samples,COALESCE(SUM(CASE WHEN occupancy=1 AND lux<? THEN 1 ELSE 0 END),0) AS dark_occupied_samples FROM telemetry WHERE ?=1 AND device_id IN (SELECT device_id FROM devices WHERE room_id=101 AND type='SENSOR') AND device_id=? AND `timestamp`>=? AND `timestamp`<?",
+        var stats=db.queryForMap("SELECT COUNT(*) AS samples,AVG(temp) AS average_temp,MIN(temp) AS minimum_temp,MAX(temp) AS maximum_temp,AVG(humid) AS average_humid,AVG(lux) AS average_lux,COALESCE(SUM(CASE WHEN temp>? THEN 1 ELSE 0 END),0) AS hot_samples,COALESCE(SUM(CASE WHEN occupancy=1 AND lux<? THEN 1 ELSE 0 END),0) AS dark_occupied_samples FROM telemetry WHERE ?=1 AND device_id=? AND `timestamp`>=? AND `timestamp`<?",
             config.get("temperature_limit"),config.get("minimum_lux"),iot?1:0,config.get("sensor_device_id"),row.get("starts_at"),row.get("ends_at"));
         var attempts=db.queryForList("SELECT status,COUNT(*) AS total FROM classroom_command_attempts WHERE booking_id=? GROUP BY status",id);
         var alertRows=db.queryForList("SELECT * FROM classroom_alerts WHERE room_id=? AND started_at<? AND (ended_at IS NULL OR ended_at>=?) ORDER BY id",row.get("room_id"),row.get("ends_at"),row.get("starts_at"));
         return Map.of("booking",row,"environment",stats,"commands",attempts,"alerts",alertRows,"thresholds",config,"iotEnabled",iot,
-            "note",iot?"Chỉ thống kê mẫu đo thật đã lưu; ngưỡng là cấu hình hiện tại, chưa lưu ảnh chụp theo buổi.":"Phòng chưa kết nối IoT. Báo cáo lịch sử dụng không có số liệu cảm biến; không dùng dữ liệu của phòng 101 thay thế.");
+            "note",iot?(contexts.isEmpty()?"Lịch cũ chưa có bản lưu cấu hình; báo cáo đang dùng cấu hình hiện tại.":"Cảm biến và ngưỡng lấy từ cấu hình đã lưu tại thời điểm duyệt lịch. Chỉ thống kê mẫu đo thật."):"Phòng chưa kết nối IoT. Báo cáo lịch sử dụng không có số liệu cảm biến; không dùng dữ liệu của phòng 101 thay thế.");
     }
     public List<Map<String,Object>> attempts(CustomUserDetails actor,int roomId) {
         staff(actor);

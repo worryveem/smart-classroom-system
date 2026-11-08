@@ -61,7 +61,7 @@ class HistoryApiIntegrationTests {
         telemetryBefore = jdbc.queryForList("SELECT * FROM telemetry ORDER BY id");
         commandsBefore = jdbc.queryForList("SELECT * FROM command_logs ORDER BY id");
         String login = mvc.perform(post("/api/auth/login").contentType("application/json")
-            .content("{\"username\":\"student\",\"password\":\"Student@12345\"}"))
+            .content("{\"username\":\"admin\",\"password\":\"Admin@12345\"}"))
             .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         token = mapper.readTree(login).path("data").path("accessToken").asText();
         assertFalse(token.isBlank());

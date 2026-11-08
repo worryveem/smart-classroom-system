@@ -1,8 +1,12 @@
 # Authentication, JWT và phân quyền — Prompt 3
 
+## Chính sách quyền hiện tại
+
+`/api/commands` chỉ dành ADMIN/TEACHER; Backend ép TEACHER về chính `username` đang đăng nhập, không cho đổi phạm vi bằng `triggerBy`. STUDENT chỉ xem lịch sử cảm biến. Xác nhận cảnh báo yêu cầu ADMIN hoặc TEACHER có ca của mình đã duyệt đang diễn ra tại phòng; quyền này độc lập với trạng thái bộ điều khiển. Nội dung sự cố chỉ người báo và ADMIN xem, thông tin tổng hợp phòng không có mô tả/người báo. Ma trận và các API mới tại [luồng theo vai trò](luong-nghiep-vu-theo-vai-tro.md).
+
 ## Cập nhật quyền điều khiển theo ca
 
-Module vận hành phòng bổ sung kiểm tra nghiệp vụ sau xác thực JWT: chỉ phòng 101 có IoT; ADMIN được điều khiển khi phòng hoạt động, TEACHER cần lịch của mình đã duyệt và đang diễn ra tại 101; STUDENT chỉ xem. Phòng bảo trì/tạm ngưng khóa điều khiển với mọi vai trò. API `GET /api/classroom/permission` phục vụ hiển thị; `POST /api/control` luôn kiểm tra lại trước khi gửi lệnh. ADMIN đăng nhập trực tiếp vào tổng quan Nhà A; đường dẫn quay lại cho phép thêm `/building`, `/classroom`. Chi tiết tại [quản lý Nhà A](building-a.md).
+Module vận hành phòng bổ sung kiểm tra nghiệp vụ sau xác thực JWT: chỉ phòng 101 có IoT; ADMIN được điều khiển khi phòng hoạt động, TEACHER cần lịch của mình đã duyệt và đang diễn ra tại 101; STUDENT chỉ xem. Phòng bảo trì/tạm ngưng khóa điều khiển với mọi vai trò. API `GET /api/classroom/permission` phục vụ hiển thị; API điều khiển luôn kiểm tra lại trước khi gửi lệnh. Mọi vai trò đăng nhập mặc định vào Tổng quan toàn dãy nhà tại `/dashboard`; đường dẫn quay lại hợp lệ vẫn được giữ, bao gồm `/building`, `/classroom`, `/iot` và `/iot/rooms/:roomId`. Chi tiết tại [quản lý Nhà A](building-a.md).
 
 ## Cơ chế
 

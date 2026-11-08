@@ -209,8 +209,8 @@ test.describe('Spring Boot integration', () => {
       const response = await responsePromise
       expect(response.status()).toBe(200)
       expect(response.headers()['access-control-allow-origin']).toBe(frontendOrigin)
-      await expect(page).toHaveURL(role === 'ADMIN' ? /\/building$/ : /\/dashboard$/)
-      const homeHeading = page.getByRole('heading', { name: role === 'ADMIN' ? 'Nhà A Không gian học tập' : 'Tổng quan', exact: true })
+      await expect(page).toHaveURL(/\/dashboard$/)
+      const homeHeading = page.getByRole('heading', { name: 'Tổng quan', exact: true })
       await expect(homeHeading).toBeVisible()
       await page.reload()
       await expect(homeHeading).toBeVisible()

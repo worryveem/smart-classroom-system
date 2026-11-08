@@ -34,8 +34,22 @@ public class BuildingService {
     private void lock() { db.queryForObject("SELECT id FROM classroom_settings WHERE id=1 FOR UPDATE",Integer.class); }
     @Transactional
     public Map<String,Object> save(RoomInput input,CustomUserDetails actor,boolean create) {
+        return save(input,actor,create,false);
+    }
+    public List<Map<String,Object>> affectedBookings(int roomId,CustomUserDetails actor) {
+        admin(actor); requireRoom(roomId);
+        return db.queryForList("SELECT id,title,owner_name,starts_at,ends_at,status FROM classroom_bookings WHERE room_id=? AND status IN ('PENDING','APPROVED') AND ends_at>? ORDER BY starts_at,id",roomId,ClassroomService.now());
+    }
+    @Transactional
+    public Map<String,Object> save(RoomInput input,CustomUserDetails actor,boolean create,boolean cancelAffectedBookings) {
         admin(actor); lock();
         if(input.status()!=RoomStatus.ACTIVE && input.note().isBlank()) throw new AdminOperationException(BAD_REQUEST,"Cần ghi lý do bảo trì hoặc tạm ngưng");
+        if(!create && input.status()!=RoomStatus.ACTIVE) {
+            var affected=affectedBookings(input.roomId(),actor);
+            if(!affected.isEmpty() && !cancelAffectedBookings) throw new AdminOperationException(CONFLICT,"Có "+affected.size()+" lịch bị ảnh hưởng. Xem danh sách và xác nhận hủy lịch trước khi bảo trì/tạm ngưng.");
+            if(cancelAffectedBookings) db.update("UPDATE classroom_bookings SET status='CANCELLED',decision_note=LEFT(?,500) WHERE room_id=? AND status IN ('PENDING','APPROVED') AND ends_at>?",
+                "Phòng bảo trì/tạm ngưng: "+input.note().trim(),input.roomId(),ClassroomService.now());
+        }
         if(create) {
             if(db.queryForObject("SELECT COUNT(*) FROM classroom_rooms",Integer.class)>=200) throw new AdminOperationException(CONFLICT,"Nhà A hỗ trợ tối đa 200 phòng");
             if(db.queryForObject("SELECT COUNT(*) FROM classroom_rooms WHERE id=?",Integer.class,input.roomId())>0) throw new AdminOperationException(CONFLICT,"Số phòng đã tồn tại");

@@ -40,3 +40,4 @@
 .classroom-event { border-bottom:1px solid #dce5e9; padding-bottom:15px; }
 @media(max-width:850px) { .classroom-form { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:550px) { .classroom-heading { align-items:flex-start; flex-direction:column; }.classroom-form { grid-template-columns:minmax(0,1fr); }.classroom-panel { padding:17px; }.classroom-metrics { grid-template-columns:minmax(0,1fr); }.classroom-dialog { padding:18px; } }
+.badge-expired { color:var(--muted); background:var(--canvas); }.classroom-edit { display:grid; gap:16px; }.classroom-edit input,.classroom-edit select { min-width:0; width:100%; }.classroom-page .classroom-field input[readonly] { background:var(--canvas); color:var(--muted); }

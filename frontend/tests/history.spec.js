@@ -2,12 +2,28 @@ import { test, expect } from '@playwright/test'
 test.use({ timezoneId: 'America/New_York' })
 
 const headers = { 'Access-Control-Allow-Origin': `http://localhost:${process.env.SMARTCLASS_E2E_PORT || 5173}`, 'Access-Control-Allow-Headers': 'Authorization,Content-Type', 'Access-Control-Allow-Methods': 'GET,OPTIONS' }
+
+test('student cannot open command history even through the URL', async ({ page }) => {
+  const { state } = await setup(page, { role: 'STUDENT' })
+  await page.goto('/history?tab=commands')
+  await expect(page.getByRole('tab', { name: 'Lịch sử điều khiển', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('tab', { name: 'Lịch sử cảm biến', exact: true })).toBeVisible()
+  expect(state.calls.some(call => call.path === '/api/commands')).toBe(false)
+})
+
+test('teacher command history does not offer another actor filter', async ({ page }) => {
+  await setup(page, { role: 'TEACHER' })
+  await ready(page)
+  await page.getByRole('tab', { name: 'Lịch sử điều khiển', exact: true }).click()
+  await expect(page.getByLabel('Người thực hiện', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('Nhật ký điều khiển chỉ hiển thị lệnh do bạn thực hiện.')).toBeVisible()
+})
 const millis = value => Date.parse(/Z$|[+-]\d{2}:\d{2}$/.test(value) ? value : `${value}+07:00`)
 const historyCalls = (state, path) => state.calls.filter(call => call.path === path)
 
 async function setup(page, options = {}) {
   const encode = value => Buffer.from(JSON.stringify(value)).toString('base64url')
-  const token = `${encode({ alg: 'HS256' })}.${encode({ sub: 'history_fixture', userId: 111, role: 'TEACHER', exp: Math.floor(Date.now() / 1000) + 3600 })}.test-only-signature`
+  const token = `${encode({ alg: 'HS256' })}.${encode({ sub: 'history_fixture', userId: 111, role: options.role || 'ADMIN', exp: Math.floor(Date.now() / 1000) + 3600 })}.test-only-signature`
   const state = {
     calls: [], telemetryStatus: 200, commandStatus: 200,
     telemetry: [
@@ -27,7 +43,7 @@ async function setup(page, options = {}) {
     const filter = rows => rows.filter(row => (!params.deviceId || row.device_id === params.deviceId)
       && (!params.from || millis(row.timestamp) >= millis(params.from)) && (!params.to || millis(row.timestamp) <= millis(params.to))
       && (!params.target || row.target === params.target) && (!params.triggerBy || row.trigger_by === params.triggerBy))
-    if (url.pathname === '/api/auth/me') data = { id: 111, username: 'history_fixture', role: 'TEACHER' }
+    if (url.pathname === '/api/auth/me') data = { id: 111, username: 'history_fixture', role: options.role || 'ADMIN' }
     else if (url.pathname === '/api/telemetry') {
       if (params.deviceId === state.deferredDevice && state.wait) await state.wait
       if (state.network) return route.abort('failed')

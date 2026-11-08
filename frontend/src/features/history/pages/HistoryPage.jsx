@@ -1,4 +1,7 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { useAuth } from '../../../context/AuthContext.jsx'
+import { api } from '../../../services/api/client.js'
 import { Activity, AlertCircle, Clock3, ListFilter, RefreshCw, Terminal } from 'lucide-react'
 import HistoryFilters from '../components/HistoryFilters.jsx'
 import TelemetryTable from '../components/TelemetryTable.jsx'
@@ -10,8 +13,21 @@ import { formatTime } from '../../../utils/dateTime.js'
 import '../history.css'
 
 export default function HistoryPage() {
-  const [tab, setTab] = useState('telemetry')
-  const [filters, setFilters] = useState({ telemetry: { ...defaultTelemetryFilters }, commands: { ...defaultCommandFilters } })
+  const { user } = useAuth(), student = user.role === 'STUDENT'
+  const [searchParams] = useSearchParams()
+  const [tab, setTab] = useState(() => !student && searchParams.get('tab') === 'commands' ? 'commands' : 'telemetry')
+  const [filters, setFilters] = useState(() => ({ telemetry: { ...defaultTelemetryFilters, deviceId: searchParams.get('deviceId') || '' }, commands: { ...defaultCommandFilters, deviceId: searchParams.get('deviceId') || '' } }))
+  const [roomId, setRoomId] = useState(searchParams.get('roomId') || ''), [rooms, setRooms] = useState([]), [devices, setDevices] = useState([]), [contextError, setContextError] = useState('')
+  useEffect(() => {
+    const controller = new AbortController()
+    api.get('/api/building/rooms', { signal: controller.signal }).then(({ data }) => { if (!controller.signal.aborted && Array.isArray(data.data)) setRooms(data.data) }).catch(() => {})
+    return () => controller.abort()
+  }, [])
+  useEffect(() => {
+    const controller = new AbortController(); setDevices([]); setContextError('')
+    if (roomId) api.get(`/api/iot/rooms/${roomId}`, { signal: controller.signal }).then(({ data }) => { if (!controller.signal.aborted && Array.isArray(data.data?.devices)) setDevices(data.data.devices) }).catch(() => { if (!controller.signal.aborted) setContextError('Chưa tải được thiết bị của phòng. Bạn có thể thử chọn lại phòng.') })
+    return () => controller.abort()
+  }, [roomId])
   const [revisions, setRevisions] = useState({ telemetry: 0, commands: 0 })
   const tabButtons = useRef([])
   const current = filters[tab]
@@ -24,7 +40,12 @@ export default function HistoryPage() {
     setFilters(previous => ({ ...previous, [tab]: { ...previous[tab], [name]: value, ...(tab === 'commands' ? { page: 0 } : {}) } }))
   }
   function reset() { setFilters(previous => ({ ...previous, [tab]: { ...(telemetry ? defaultTelemetryFilters : defaultCommandFilters) } })) }
+  function chooseRoom(value) {
+    setRoomId(value)
+    setFilters(previous => ({ telemetry: { ...previous.telemetry, deviceId: '' }, commands: { ...previous.commands, deviceId: '', page: 0 } }))
+  }
   function tabKey(event, index) {
+    if (student) return
     if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
     event.preventDefault()
     const next = event.key === 'Home' ? 0 : event.key === 'End' ? 1 : 1 - index
@@ -32,14 +53,16 @@ export default function HistoryPage() {
     tabButtons.current[next]?.focus()
   }
   return <div className="history-page">
-    <header className="history-heading"><div><p className="eyebrow">Tra cứu dữ liệu</p><h1>Lịch sử</h1><p>Theo dõi dữ liệu cảm biến và các thao tác điều khiển trong lớp học.</p></div>
+    <header className="history-heading"><div><h1>Lịch sử</h1><p>Theo dõi dữ liệu cảm biến và các thao tác điều khiển trong lớp học.</p></div>
       <button className="history-refresh" disabled={resource.loading || !valid} onClick={() => setRevisions(previous => ({ ...previous, [tab]: previous[tab] + 1 }))}><RefreshCw size={16} className={resource.loading ? 'spin' : ''} />Làm mới dữ liệu</button>
     </header>
-    <div className="history-tabs" role="tablist" aria-label="Loại lịch sử">{[{ key: 'telemetry', label: 'Lịch sử cảm biến', icon: Activity }, { key: 'commands', label: 'Lịch sử điều khiển', icon: Terminal }].map(({ key, label, icon: Icon }, index) =>
+    <p className="history-bottom-note">{student ? 'Bạn được xem lịch sử môi trường; nhật ký điều khiển dành cho giáo viên và quản trị viên.' : user.role === 'TEACHER' ? 'Nhật ký điều khiển chỉ hiển thị lệnh do bạn thực hiện.' : 'Bạn có quyền tra cứu nhật ký toàn hệ thống.'}</p>
+    <section className="history-room-context" aria-label="Chọn phòng và thiết bị"><label>Phòng học<select value={roomId} onChange={e => chooseRoom(e.target.value)}><option value="">Tất cả phòng · chọn thiết bị bên dưới</option>{rooms.map(room => <option key={room.id} value={room.id}>Tầng {room.floor_number} · Phòng {room.id}</option>)}</select></label>{roomId && <label>Thiết bị trong phòng<select value={devices.some(d => d.device_id === current.deviceId) ? current.deviceId : ''} onChange={e => change('deviceId', e.target.value)}><option value="">Chọn thiết bị để lọc lịch sử</option>{devices.filter(d => tab === 'telemetry' ? d.type === 'SENSOR' : d.type === 'ACTUATOR').map(d => <option key={d.device_id}>{d.device_id}</option>)}</select></label>}{contextError && <p role="status">{contextError}</p>}{roomId && !current.deviceId && <p>Chọn một thiết bị để lọc theo phòng. Kết quả bên dưới hiện chưa giới hạn theo phòng.</p>}</section>
+    <div className="history-tabs" role="tablist" aria-label="Loại lịch sử">{[{ key: 'telemetry', label: 'Lịch sử cảm biến', icon: Activity }, ...(!student ? [{ key: 'commands', label: 'Lịch sử điều khiển', icon: Terminal }] : [])].map(({ key, label, icon: Icon }, index) =>
       <button key={key} ref={element => { tabButtons.current[index] = element }} id={`tab-${key}`} role="tab" aria-selected={tab === key} aria-controls={`panel-${key}`} tabIndex={tab === key ? 0 : -1} onClick={() => setTab(key)} onKeyDown={event => tabKey(event, index)}><Icon size={17} />{label}</button>)}
     </div>
     <section id={`panel-${tab}`} role="tabpanel" aria-labelledby={`tab-${tab}`}>
-      <HistoryFilters tab={tab} filters={current} errors={errors} change={change} reset={reset} />
+      <HistoryFilters tab={tab} filters={current} errors={errors} change={change} reset={reset} canFilterActor={user.role === 'ADMIN'} />
       {resource.error && <div className="history-alert" role="alert"><AlertCircle size={19} /><div><strong>{historyError(resource.error)}</strong>{rows.length > 0 && <p>Đang hiển thị dữ liệu của lần tải trước với cùng bộ lọc.</p>}</div></div>}
       <section className="history-results" aria-label={telemetry ? 'Kết quả cảm biến' : 'Kết quả điều khiển'}>
         <div className="history-result-heading"><div><ListFilter size={16} /><h2>{telemetry ? 'Dữ liệu cảm biến' : 'Nhật ký điều khiển'}</h2>{resource.data && <span className="history-count">{telemetry ? rows.length : resource.data.totalElements} bản ghi{telemetry ? ' đã tải' : ''}</span>}</div>

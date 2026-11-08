@@ -12,12 +12,15 @@ async function setup(page, role = 'ADMIN') {
     if (method === 'OPTIONS') return reply(null)
     const body = request.postDataJSON(); state.calls.push({ path, method, body })
     if (path === '/api/auth/me') return reply({ id: 1, username: 'fixture', role })
+    if (path === '/api/iot/rooms/101') return reply({ id: 101, status: 'ACTIVE', iotEnabled: true, devices: [], incidentSummary: [] })
+    if (path === '/api/building/rooms') return reply([{ id: 101, status: 'ACTIVE', floor_number: 1, capacity: 40 }])
     if (state.fail) return reply(null, 503, 'Chưa kết nối được database')
     if (path.endsWith('/settings')) return reply({ name: 'Phòng thử nghiệm', sensor_device_id: 'node1_sensor', temperature_limit: 32, minimum_lux: 150, sustained_seconds: 120, offline_seconds: 300 })
     if (path.endsWith('/permission')) return reply({ allowed: role === 'ADMIN', reason: role === 'ADMIN' ? 'Quản trị viên được điều khiển phòng' : 'Chỉ xem khi chưa có lịch đang diễn ra', bookingId: 0 })
     if (path.endsWith('/bookings') && method === 'POST') { state.bookings.push({ id: 8, owner_id: 1, owner_name: 'fixture', title: body.title, starts_at: body.startsAt, ends_at: body.endsAt, status: 'PENDING' }); return reply(state.bookings.at(-1)) }
     if (path.endsWith('/bookings')) return reply(state.bookings)
     if (path.endsWith('/bookings/7') && method === 'PATCH') { Object.assign(state.bookings[0], { status: body.status, decision_note: body.note }); return reply(state.bookings[0]) }
+    if (path.endsWith('/bookings/7') && method === 'PUT') { if (state.editConflict) return reply(null, 409, 'Khung giờ đã có lịch'); Object.assign(state.bookings[0], { title: body.title, starts_at: body.startsAt, ends_at: body.endsAt }); return reply(state.bookings[0]) }
     if (path.endsWith('/bookings/7/report')) return reply({ booking: state.bookings[0], environment: { samples: 0, average_temp: null, average_humid: null, average_lux: null, hot_samples: 0, dark_occupied_samples: 0 }, commands: [], alerts: [], note: 'Chỉ thống kê mẫu đo thật đã lưu.' })
     if (path.endsWith('/incidents') && method === 'POST') { state.incidents.push({ id: 3, ...body, reporter_name: 'fixture', status: 'OPEN', created_at: '2026-11-08T18:00:00' }); return reply(state.incidents[0]) }
     if (path.endsWith('/incidents')) return reply(state.incidents)
@@ -71,6 +74,21 @@ test('student can report incidents but cannot approve or configure the room', as
   await expect(page.getByRole('row').filter({ hasText: 'Đèn nhấp nháy' })).toContainText('Mới báo')
   expect(state.incidents).toHaveLength(1)
   await expect(page.getByRole('button', { name: 'Cập nhật', exact: true })).toHaveCount(0)
+})
+
+test('editing a pending booking keeps the form on conflict and saves after correction', async ({ page }) => {
+  const state = await setup(page, 'TEACHER')
+  await page.getByRole('button', { name: 'Sửa đăng ký', exact: true }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByLabel('Nội dung đăng ký', { exact: true }).fill('Nội dung đã sửa')
+  state.editConflict = true
+  await dialog.getByRole('button', { name: 'Lưu đăng ký', exact: true }).click()
+  await expect(dialog.getByRole('alert')).toContainText('Khung giờ đã có lịch')
+  await expect(dialog.getByLabel('Nội dung đăng ký')).toHaveValue('Nội dung đã sửa')
+  state.editConflict = false
+  await dialog.getByRole('button', { name: 'Lưu đăng ký', exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(page.getByRole('table')).toContainText('Nội dung đã sửa')
 })
 
 test('acknowledgement does not mark an active alert as ended and timeout is explicit', async ({ page }) => {
