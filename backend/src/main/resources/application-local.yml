@@ -1,0 +1,10 @@
+# Development only. Never activate this profile in production.
+app:
+  seed:
+    enabled: ${APP_SEED_ENABLED:true}
+    admin-password: ${SEED_ADMIN_PASSWORD:Admin@12345}
+    teacher-password: ${SEED_TEACHER_PASSWORD:Teacher@12345}
+    student-password: ${SEED_STUDENT_PASSWORD:Student@12345}
+spring:
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:smartclass_db}?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=${DB_ALLOW_PUBLIC_KEY_RETRIEVAL:true}
