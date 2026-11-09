@@ -14,16 +14,19 @@ public final class CustomUserDetails implements UserDetails, CredentialsContaine
     private final Long id;
     private final String username;
     private final UserRole role;
+    private final long credentialsVersion;
     private String passwordHash;
 
     public CustomUserDetails(User user) {
         this.id = user.getId();
         this.username = user.getUsername();
         this.role = user.getRole();
+        this.credentialsVersion = user.getCredentialsVersion();
         this.passwordHash = user.getPasswordHash();
     }
     public Long getId() { return id; }
     public UserRole getRole() { return role; }
+    @JsonIgnore public long getCredentialsVersion() { return credentialsVersion; }
     @Override public String getUsername() { return username; }
     @JsonIgnore
     @Override public String getPassword() { return passwordHash; }

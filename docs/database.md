@@ -1,5 +1,13 @@
 # Database Layer — Prompt 2
 
+## Flyway V6: hồ sơ cá nhân và mật khẩu
+
+V6 thêm `users.full_name`, `email`, `phone`, `credentials_version`. Các bản ghi cũ nhận trường liên hệ rỗng và phiên bản 0; không thay mật khẩu hoặc vai trò đang có. Mỗi lần đổi/đặt lại mật khẩu tăng phiên bản để JWT cũ không còn hợp lệ. Xem [tài khoản cá nhân](tai-khoan-ca-nhan.md).
+
+## Flyway V5: thông báo cá nhân
+
+V5 tạo `app_notifications` với người nhận, loại sự kiện, nội dung, đường dẫn nội bộ, thời điểm tạo/đọc và chỉ mục theo người nhận/chưa đọc. Khóa ngoại tới `users` dùng ON DELETE CASCADE. Thông báo được ghi cùng giao dịch lịch/sự cố, không backfill quyết định cũ và không sửa các bảng IoT. Hợp đồng tại [lịch giáo viên và thông báo](lich-giao-vien-va-thong-bao.md).
+
 ## Flyway V4: hạn duyệt và cấu hình theo ca
 
 V4 bổ sung `classroom_bookings.expires_at`, chỉ mục phục vụ hết hạn, trạng thái EXPIRED và bảng `classroom_booking_context` liên kết theo lịch. Không xóa lịch hoặc sửa các bảng IoT do Node-RED sử dụng. Lịch chờ cũ được tính hạn từ ngày tạo và giờ bắt đầu; tác vụ chạy sẽ đánh dấu lịch quá hạn. Lịch đã duyệt cũ không được gán cấu hình quá khứ suy đoán; báo cáo ghi rõ trường hợp chưa có bản cấu hình lưu. Quy tắc tại [luồng nghiệp vụ theo vai trò](luong-nghiep-vu-theo-vai-tro.md).

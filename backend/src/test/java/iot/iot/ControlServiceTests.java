@@ -24,6 +24,13 @@ class ControlServiceTests {
     private final ControlService service=new ControlService(client,devices,audit,properties,users);
     private final ControlRequest request=new ControlRequest(ControlTarget.FAN,ControlAction.ON);
     @BeforeEach void setup() { when(devices.existsByDeviceId("node2_actuator")).thenReturn(true); }
+    @Test void automaticCommandsUseInternalReservedActorAndExistingAckAudit() {
+        when(client.command(any())).thenReturn(new NodeRedCommandResponse(CommandStatus.SUCCESS,null));
+        var result=service.automatic(request);
+        assertEquals("RULE_ENGINE",result.triggerBy());
+        verify(audit).recordConfirmed(eq("node2_actuator"),any(),eq("RULE_ENGINE"));
+        verifyNoInteractions(users);
+    }
     @Test
     void missingDeviceNeverDispatches() {
         when(devices.existsByDeviceId("node2_actuator")).thenReturn(false);

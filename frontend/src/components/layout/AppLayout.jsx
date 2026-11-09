@@ -1,16 +1,21 @@
-import { NavLink, Outlet } from 'react-router-dom'
-import { History, LayoutDashboard, LogOut, School, Settings, PanelsTopLeft } from 'lucide-react'
+import { Link, NavLink, Outlet } from 'react-router-dom'
+import { CalendarDays, History, LayoutDashboard, LogOut, School, Settings, PanelsTopLeft, BrainCircuit, AlertTriangle } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext.jsx'
+import NotificationBell from '../../features/notifications/NotificationBell.jsx'
+import '../../features/account/account.css'
 
 const roleLabels = { ADMIN: 'Quản trị viên', TEACHER: 'Giáo viên', STUDENT: 'Học viên' }
 
 export default function AppLayout() {
   const { user, logout } = useAuth()
   const links = [
+    ...(['ADMIN', 'TEACHER'].includes(user.role) ? [{ to: '/automation', label: 'Chế độ tự động', icon: BrainCircuit }] : []),
     { to: '/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
+    ...(user.role === 'TEACHER' ? [{ to: '/my-schedule', label: 'Lịch của tôi', icon: CalendarDays }] : []),
     { to: '/building', label: 'Phòng học', icon: School },
     { to: '/iot', label: 'Thiết bị theo phòng', icon: PanelsTopLeft },
     { to: '/history', label: 'Lịch sử', icon: History },
+    { to: '/incidents', label: 'Báo cáo sự cố', icon: AlertTriangle },
     ...(user.role === 'ADMIN' ? [{ to: '/admin', label: 'Quản trị', icon: Settings }] : []),
   ]
   return (
@@ -20,8 +25,8 @@ export default function AppLayout() {
         <NavLink to="/dashboard" className="brand"><span className="brand-mark"><School size={23} /></span>SmartClass<span className="iot-tag">IoT</span></NavLink>
         <div className="header-context"><PanelsTopLeft size={18} aria-hidden="true" /><span>Quản lý phòng học</span></div>
         <div className="account-menu">
-          <div className="account-avatar" aria-hidden="true">{user.username.slice(0, 1).toUpperCase()}</div>
-          <div className="account-text"><strong>{user.username}</strong><span>{roleLabels[user.role]}</span></div>
+          <NotificationBell key={user.id} />
+          <Link to="/profile" className="account-identity" aria-label="Tài khoản cá nhân" title="Thông tin cá nhân và đổi mật khẩu"><div className="account-avatar" aria-hidden="true">{user.username.slice(0, 1).toUpperCase()}</div><div className="account-text"><strong>{user.username}</strong><span>{roleLabels[user.role]}</span></div></Link>
           <button onClick={logout} className="logout-button" aria-label="Đăng xuất"><LogOut size={18} aria-hidden="true" /><span>Đăng xuất</span></button>
         </div>
       </header>

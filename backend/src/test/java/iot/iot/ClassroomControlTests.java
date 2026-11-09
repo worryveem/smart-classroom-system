@@ -21,7 +21,16 @@ class ClassroomControlTests {
     private final ControlService control=mock(ControlService.class);
     private final UserRepository users=mock(UserRepository.class);
     private final RoomIotAccess access=mock(RoomIotAccess.class);
-    private final ClassroomControlService service=new ClassroomControlService(classroom,control,users,access);
+    private final iot.iot.ai.AutomationService automation=mock(iot.iot.ai.AutomationService.class);
+    private final ClassroomControlService service=new ClassroomControlService(classroom,control,users,access,automation);
+    @org.junit.jupiter.api.BeforeEach void setupAutomationLock() {
+        when(automation.exclusive(any())).thenAnswer(call -> ((java.util.function.Supplier<?>)call.getArgument(0)).get());
+    }
+    @Test void automaticModeBlocksManualCommands() {
+        doThrow(new iot.iot.exception.AdminOperationException(HttpStatus.CONFLICT,"Tắt tự động trước")).when(automation).requireManual();
+        assertThrows(iot.iot.exception.AdminOperationException.class,()->service.execute(input,actor()));
+        verifyNoInteractions(control,classroom);
+    }
     private final ControlRequest input=new ControlRequest(ControlTarget.FAN,ControlAction.ON);
     private CustomUserDetails actor() {
         var user=new User(); user.setUsername("teacher"); user.setRole(UserRole.TEACHER); ReflectionTestUtils.setField(user,"id",2L);

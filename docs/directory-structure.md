@@ -1,5 +1,56 @@
 # Cấu trúc thư mục
 
+## Rà soát tổng thể hiện tại
+
+- `docs/ra-soat-tong-the-2026-11-09.md`: đánh giá các nhóm chức năng, khoảng trống tích hợp, phát hiện theo mức ưu tiên và phạm vi kiểm chứng. Tài liệu rà soát cũ được giữ để đối chiếu lịch sử.
+
+## Báo cáo sự cố trên menu
+
+- `frontend/src/features/incidents/`: trang `/incidents`, danh sách theo quyền, bộ lọc, phân trang, form tạo và cập nhật xử lý.
+- `backend/src/main/java/iot/iot/classroom/IncidentListController.java`: API danh sách nhiều phòng; admin xem toàn bộ, tài khoản khác chỉ nhận báo cáo của mình.
+- `backend/src/test/java/iot/iot/IncidentListTests.java`, `frontend/tests/incidents.spec.js`: kiểm thử giới hạn dữ liệu và các thao tác giao diện.
+- `docs/bao-cao-su-co.md`: phạm vi theo vai trò, API và cách kiểm tra. Các thao tác ghi dùng lại dịch vụ sự cố hiện có, không thêm bảng.
+
+## Tự động điều khiển quạt và đèn
+
+- `frontend/src/features/automation/`: trang `/automation`, công tắc chung phòng 101, ngưỡng quạt/đèn và thời gian chờ PIR.
+- `backend/src/main/java/iot/iot/ai/AutomationController.java`, `AutomationService.java`, `AutomationPolicy.java`, `AutomationScheduler.java`: API, khóa cạnh tranh MySQL, quy tắc có vùng trễ và tác vụ điều khiển Node-RED.
+- `backend/src/main/resources/db/migration/V8__room_automation.sql`: cấu hình và trạng thái điều khiển tự động theo phòng, mặc định tắt.
+- `backend/src/test/java/iot/iot/AutomationTests.java`: kiểm thử quyết định, dữ liệu cũ, chuỗi PIR, cooldown và dừng khi lệnh không được xác nhận.
+- `backend/src/test/java/iot/iot/AutomationLockTests.java`: kiểm thử khóa bận và giải phóng khóa khi tác vụ lỗi.
+- `backend/src/main/java/iot/iot/ai/AiSettingsController.java`: API đọc/lưu lựa chọn theo tài khoản, giới hạn ADMIN/TEACHER.
+- `backend/src/main/resources/db/migration/V7__ai_suggestion_preferences.sql`: bảng cấu hình AI cá nhân.
+- `frontend/tests/automation.spec.js`: kiểm thử bật/tắt, lỗi, lưu trạng thái và quyền giao diện.
+- `backend/src/test/java/iot/iot/AiSettingsTests.java`: kiểm thử quyền backend và phạm vi tài khoản khi lưu cấu hình.
+- `docs/che-do-tu-dong.md`: quy tắc điều khiển, phân quyền, API và giới hạn kiểm chứng phần cứng. V7 và API gợi ý cá nhân được giữ lại, không tham gia điều khiển.
+
+## API gợi ý AI thử nghiệm
+
+- `AI-Service/app.py`: FastAPI nạp hai model cố định, kiểm tra đầu vào và trả gợi ý; chưa kết nối ESP, MySQL hay backend.
+- `AI-Service/requirements.txt`: phiên bản thư viện cho môi trường Python thử nghiệm.
+- `AI-Service/test_app.py`: kiểm thử hợp đồng HTTP với model giả và các trường hợp đầu vào không hợp lệ.
+- `AI-Service/README.md`: cách chạy, ví dụ API và giới hạn chuẩn hóa dữ liệu cảm biến.
+- `AI-Service/AI1-Service/`: artifact phát hiện bất thường, dữ liệu và biểu đồ.
+- `AI-Service/AI2_Occupancy/AI2_Occupancy/`: artifact phân loại hiện diện, dữ liệu, biểu đồ và báo cáo đánh giá.
+
+## Tài khoản cá nhân
+
+- `backend/src/main/java/iot/iot/account/`: DTO có kiểm tra đầu vào, API và dịch vụ hồ sơ/đổi mật khẩu của người đang đăng nhập.
+- `backend/src/main/resources/db/migration/V6__personal_profile_and_credentials.sql`: các trường liên hệ và phiên bản thông tin đăng nhập.
+- `frontend/src/features/account/`: trang hồ sơ và CSS, dùng cho cả ba vai trò tại `/profile`.
+- `backend/src/test/java/iot/iot/AccountIntegrationTests.java`, `frontend/tests/account.spec.js`: kiểm thử hồ sơ, quyền, đổi mật khẩu và phiên đăng nhập.
+- `docs/tai-khoan-ca-nhan.md`: cách dùng, API và chính sách cập nhật thông tin.
+
+## Lịch giáo viên và thông báo cá nhân
+
+- `backend/src/main/java/iot/iot/classroom/TeachingHistoryController.java`: truy vấn/phân trang lịch cá nhân, chi tiết chỉ thuộc người đăng nhập.
+- `backend/src/main/java/iot/iot/notification/`: Controller và dịch vụ thông báo, kiểm tra người nhận, ghi cùng giao dịch nghiệp vụ.
+- `backend/src/main/resources/db/migration/V5__personal_notifications.sql`: bảng thông báo và chỉ mục, không thay schema IoT.
+- `frontend/src/features/teaching/`: trang Lịch của tôi và CSS, lọc lịch, chi tiết và các thao tác theo quyền.
+- `frontend/src/features/notifications/`: chuông, danh sách thông báo, đánh dấu đã đọc và CSS dùng chung cho trang cá nhân.
+- `frontend/tests/teaching-notifications.spec.js`: kiểm thử lịch sử, phân trang, thao tác, thông báo, điều hướng và màn hình di động.
+- `docs/lich-giao-vien-va-thong-bao.md`: hướng dẫn chức năng và hợp đồng API mới.
+
 ## Luồng theo vai trò và vòng đời lịch
 
 - `frontend/src/features/dashboard/components/WorkspacePanel.jsx`: hàng đợi ADMIN, lịch cá nhân TEACHER và sự cố cá nhân STUDENT.

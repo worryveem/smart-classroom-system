@@ -21,7 +21,8 @@ public class ClassroomService {
     private final JdbcTemplate db;
     private final BuildingService building;
     private final NodeRedProperties nodeRed;
-    public ClassroomService(JdbcTemplate db,BuildingService building,NodeRedProperties nodeRed) { this.db = db; this.building=building; this.nodeRed=nodeRed; }
+    private final iot.iot.notification.NotificationService notifications;
+    public ClassroomService(JdbcTemplate db,BuildingService building,NodeRedProperties nodeRed,iot.iot.notification.NotificationService notifications) { this.db = db; this.building=building; this.nodeRed=nodeRed; this.notifications=notifications; }
     private static int roomId(Integer id) { return id==null?101:id; }
     public static LocalDateTime now() { return LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")); }
     private void admin(CustomUserDetails actor) {
@@ -35,7 +36,10 @@ public class ClassroomService {
     @Transactional
     public void expirePendingBookings() {
         lockRoom();
-        db.update("UPDATE classroom_bookings SET status='EXPIRED',decision_note='Hết thời hạn duyệt' WHERE status='PENDING' AND COALESCE(expires_at,starts_at)<=?",now());
+        var expiryTime=now();
+        var expired=db.queryForList("SELECT id,owner_id,room_id,title FROM classroom_bookings WHERE status='PENDING' AND COALESCE(expires_at,starts_at)<=?",expiryTime);
+        db.update("UPDATE classroom_bookings SET status='EXPIRED',decision_note='Hết thời hạn duyệt' WHERE status='PENDING' AND COALESCE(expires_at,starts_at)<=?",expiryTime);
+        for(var row:expired) notifications.send(((Number)row.get("owner_id")).longValue(),"BOOKING_EXPIRED","Đăng ký đã hết hạn duyệt","Phòng "+row.get("room_id")+" · "+row.get("title"),"/my-schedule?bookingId="+row.get("id"));
     }
     public Map<String,Object> workspace(CustomUserDetails actor) {
         var time=now();
@@ -90,6 +94,11 @@ public class ClassroomService {
         if(rows.isEmpty()) throw new AdminOperationException(NOT_FOUND,"Không tìm thấy lịch sử dụng");
         return rows.get(0);
     }
+    public Map<String,Object> bookingDetail(long id,CustomUserDetails actor) {
+        staff(actor); var row=booking(id);
+        if(actor.getRole()!=UserRole.ADMIN && ((Number)row.get("owner_id")).longValue()!=actor.getId()) throw new AccessDeniedException("Forbidden");
+        return row;
+    }
     private void rejectOverlap(LocalDateTime start, LocalDateTime end, long exceptId, int roomId, long ownerId) {
         if(db.queryForObject("SELECT COUNT(*) FROM classroom_bookings WHERE room_id=? AND status IN ('PENDING','APPROVED') AND starts_at < ? AND ends_at > ? AND id<>?",
             Long.class,roomId,end,start,exceptId)>0) throw new AdminOperationException(CONFLICT,"Khung giờ đã có lịch chờ duyệt hoặc được duyệt trong phòng này");
@@ -109,6 +118,7 @@ public class ClassroomService {
         long id=insert("INSERT INTO classroom_bookings(owner_id,owner_name,title,starts_at,ends_at,room_id,expected_attendees) VALUES (?,?,?,?,?,?,?)",
             actor.getId(),actor.getUsername(),input.title().trim(),input.startsAt(),input.endsAt(),selected,attendees);
         db.update("UPDATE classroom_bookings SET expires_at=LEAST(DATE_ADD(?,INTERVAL 24 HOUR),starts_at) WHERE id=?",now(),id);
+        notifications.administrators("BOOKING_SUBMITTED","Có đăng ký phòng chờ duyệt","Phòng "+selected+" · "+actor.getUsername()+" · "+input.title().trim(),"/classroom?roomId="+selected+"&bookingId="+id);
         return booking(id);
     }
     @Transactional
@@ -124,6 +134,7 @@ public class ClassroomService {
         rejectOverlap(input.startsAt(),input.endsAt(),id,selected,owner);
         db.update("UPDATE classroom_bookings SET title=?,starts_at=?,ends_at=?,room_id=?,expected_attendees=?,expires_at=LEAST(expires_at,?),decision_note='' WHERE id=?",
             input.title().trim(),input.startsAt(),input.endsAt(),selected,attendees,input.startsAt(),id);
+        notifications.administrators("BOOKING_UPDATED","Đăng ký phòng đã được sửa","Phòng "+selected+" · "+input.title().trim(),"/classroom?roomId="+selected+"&bookingId="+id);
         return booking(id);
     }
     @Transactional
@@ -143,6 +154,9 @@ public class ClassroomService {
         }
         db.update("UPDATE classroom_bookings SET status=?,decision_note=? WHERE id=?",input.status().name(),input.note().trim(),id);
         if(input.status()==Decision.APPROVED) captureContext(id,((Number)row.get("room_id")).intValue());
+        String decisionTitle=switch(input.status()) { case APPROVED -> "Lịch đã được duyệt"; case REJECTED -> "Đăng ký đã bị từ chối"; case CANCELLED -> "Lịch đã được hủy"; };
+        notifications.send(((Number)row.get("owner_id")).longValue(),"BOOKING_"+input.status().name(),decisionTitle,
+            "Phòng "+row.get("room_id")+" · "+row.get("title")+(input.note().isBlank()?"":" · "+input.note().trim()),"/my-schedule?bookingId="+id);
         return booking(id);
     }
     public Map<String,Object> permission(CustomUserDetails actor) {
@@ -152,6 +166,7 @@ public class ClassroomService {
         var result=new HashMap<String,Object>(controlPermission(actor,roomId));
         boolean canAcknowledge=actor.getRole()==UserRole.ADMIN || (actor.getRole()==UserRole.TEACHER && db.queryForObject("SELECT COUNT(*) FROM classroom_bookings WHERE owner_id=? AND room_id=? AND status='APPROVED' AND starts_at<=? AND ends_at>?",Integer.class,actor.getId(),roomId,now(),now())>0);
         result.put("canAcknowledge",canAcknowledge);
+        result.put("automaticEnabled",roomId==101 && Boolean.TRUE.equals(db.queryForObject("SELECT enabled FROM room_automation WHERE room_id=101",Boolean.class)));
         return result;
     }
     private Map<String,Object> controlPermission(CustomUserDetails actor,int roomId) {
@@ -178,6 +193,7 @@ public class ClassroomService {
         if(actor.getRole()!=UserRole.ADMIN && ((Number)row.get("reporter_id")).longValue()!=actor.getId()) throw new AccessDeniedException("Forbidden");
         return row;
     }
+    public Map<String,Object> incidentDetail(long id,CustomUserDetails actor) { return incident(id,actor); }
     public List<Map<String,Object>> incidentEvents(long id, CustomUserDetails actor) {
         incident(id,actor);
         return db.queryForList("SELECT * FROM classroom_incident_events WHERE incident_id=? ORDER BY id",id);
@@ -190,6 +206,7 @@ public class ClassroomService {
         long id=insert("INSERT INTO classroom_incidents(reporter_id,reporter_name,title,description,device_id,room_id) VALUES (?,?,?,?,?,?)",
             actor.getId(),actor.getUsername(),input.title().trim(),input.description().trim(),input.deviceId()==null || input.deviceId().isBlank()?null:input.deviceId(),selected);
         db.update("INSERT INTO classroom_incident_events(incident_id,status,note,actor) VALUES (?,'OPEN',?,?)",id,"Tạo báo cáo sự cố",actor.getUsername());
+        notifications.administrators("INCIDENT_CREATED","Có báo cáo sự cố mới","Phòng "+selected+" · "+input.title().trim(),"/classroom?roomId="+selected+"&tab=incidents&incidentId="+id);
         return incident(id,actor);
     }
     @Transactional
@@ -198,6 +215,9 @@ public class ClassroomService {
         if(row.get("status").equals(input.status().name())) throw new AdminOperationException(CONFLICT,"Sự cố đã ở trạng thái này");
         db.update("UPDATE classroom_incidents SET status=?,resolution=?,updated_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=?",input.status().name(),input.note().trim(),actor.getUsername(),id);
         db.update("INSERT INTO classroom_incident_events(incident_id,status,note,actor) VALUES (?,?,?,?)",id,input.status().name(),input.note().trim(),actor.getUsername());
+        String incidentStatus=switch(input.status()) { case OPEN -> "Mở lại"; case IN_PROGRESS -> "Đang xử lý"; case RESOLVED -> "Đã xử lý"; };
+        notifications.send(((Number)row.get("reporter_id")).longValue(),"INCIDENT_UPDATED","Sự cố: "+incidentStatus,
+            "Phòng "+row.get("room_id")+" · "+row.get("title")+" · "+input.note().trim(),"/classroom?roomId="+row.get("room_id")+"&tab=incidents&incidentId="+id);
         return incident(id,actor);
     }
     public List<Map<String,Object>> alerts(int roomId) {

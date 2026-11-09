@@ -13,8 +13,10 @@ import { ACTUATOR_ID, SENSOR_ID } from '../services/stateAdapter.js'
 import '../dashboard.css'
 import { useControlPermission } from '../../classroom/useControlPermission.js'
 import RoomDevices from '../../iot/RoomDevices.jsx'
+import { useAuth } from '../../../context/AuthContext.jsx'
 
 export default function DashboardPage({ room }) {
+  const { user } = useAuth()
   const roomId = room.id
   const scope = useMemo(() => ({ roomId: room.id, sensorId: room.sensorId, actuatorId: room.actuatorId }), [room])
   const state = useDeviceState(scope)
@@ -48,10 +50,10 @@ export default function DashboardPage({ room }) {
           <div className="panel-heading"><div><p className="eyebrow">Thiết bị trong lớp</p><h2>Điều khiển</h2></div><Activity size={19} color="#91aaa9" /></div>
           <p className="panel-subtitle">Bộ điều khiển <code>{room?.actuatorId || ACTUATOR_ID}</code></p>
           <p className="panel-subtitle" role="status">{permission.error ? 'Chưa kiểm tra được quyền điều khiển.' : permission.data?.reason || 'Đang kiểm tra quyền điều khiển…'}</p>
-          <DeviceControl target="FAN" state={data} stale={actuatorStale} pending={pending} control={control} permissionDenied={permission.error || !permission.data?.allowed} />
-          <DeviceControl target="LIGHT" state={data} stale={actuatorStale} pending={pending} control={control} permissionDenied={permission.error || !permission.data?.allowed} />
+          <DeviceControl target="FAN" state={data} stale={actuatorStale} pending={pending} control={control} permissionDenied={permission.error || !permission.data?.allowed || permission.data?.automaticEnabled} disabledReason={permission.data?.automaticEnabled ? 'Tắt chế độ tự động trước khi điều khiển thủ công.' : undefined} />
+          <DeviceControl target="LIGHT" state={data} stale={actuatorStale} pending={pending} control={control} permissionDenied={permission.error || !permission.data?.allowed || permission.data?.automaticEnabled} disabledReason={permission.data?.automaticEnabled ? 'Tắt chế độ tự động trước khi điều khiển thủ công.' : undefined} />
           {result && <div className={`command-result result-${result.tone}`} role="status" aria-live="polite"><strong>{result.target} · {result.action} · {result.status}</strong><p>{result.message}</p></div>}
-          <div className="auto-status"><Workflow size={20} /><div><strong>Chế độ AUTO <span>{data?.auto === true ? 'Đang bật' : data?.auto === false ? 'Đang tắt' : 'Chưa có trạng thái'}</span></strong><p>Chỉ hiển thị khi có dữ liệu. Chưa hỗ trợ chuyển chế độ từ giao diện.</p></div></div>
+          <div className="auto-status"><Workflow size={20} /><div><strong>Chế độ AUTO <span>{permission.error ? 'Chưa có trạng thái' : permission.data?.automaticEnabled === true ? 'Đang bật' : permission.data?.automaticEnabled === false ? 'Đang tắt' : 'Chưa có trạng thái'}</span></strong><p>{['ADMIN','TEACHER'].includes(user.role) ? <Link to="/automation">Cấu hình tự động quạt và đèn</Link> : 'Giáo viên hoặc admin quản lý chế độ tự động.'}</p></div></div>
         </section>
       </div>
       <footer className="sensor-source"><div><Activity size={16} /><span>Nguồn cảm biến <code>{room?.sensorId || SENSOR_ID}</code></span><ConnectionBadge connected={data?.sensorConnected} /></div><span>{data?.sensorTimestamp ? `Thời điểm State: ${formatTime(data.sensorTimestamp, true)}` : 'API chưa cung cấp thời điểm cập nhật của cảm biến'}</span></footer>

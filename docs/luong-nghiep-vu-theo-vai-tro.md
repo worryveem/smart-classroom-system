@@ -1,5 +1,9 @@
 # Luồng nghiệp vụ và giao diện theo vai trò
 
+## Bổ sung ngày 09/11/2026
+
+Trang Lịch của tôi tại `/my-schedule` đã có lịch sử/phân trang/bộ lọc riêng cho tài khoản giáo viên hoặc quản trị viên. Thông báo trong ứng dụng tại `/notifications` lưu kết quả duyệt/hủy/hết hạn và cập nhật sự cố, có số chưa đọc trên chuông. Chi tiết [lịch giáo viên và thông báo](lich-giao-vien-va-thong-bao.md). Các đoạn mô tả Tổng quan bên dưới vẫn được giữ và liên kết tới các trang mới.
+
 ## Phạm vi quyền
 
 | Chức năng | ADMIN | TEACHER | STUDENT |

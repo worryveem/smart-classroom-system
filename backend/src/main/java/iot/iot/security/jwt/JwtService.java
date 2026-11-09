@@ -54,6 +54,7 @@ public class JwtService {
         return Jwts.builder().issuer(ISSUER).subject(user.getUsername())
             .claim("userId", user.getId())
             .claim("role", user.getRole().name())
+            .claim("credentialsVersion", user.getCredentialsVersion())
             .issuedAt(new Date(now)).expiration(new Date(now + expiration))
             .signWith(key, Jwts.SIG.HS256).compact();
     }

@@ -47,6 +47,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // Always reload authorities from MySQL; the JWT role claim is informational.
                 CustomUserDetails user = users.loadUserByUsername(username);
                 if (!user.getId().equals(claims.get("userId", Long.class))) throw new JwtException("Invalid identity");
+                Long credentialsVersion=claims.get("credentialsVersion",Long.class);
+                if(user.getCredentialsVersion()!=(credentialsVersion==null?0L:credentialsVersion)) throw new JwtException("Credentials have changed");
                 user.eraseCredentials();
                 var authentication = UsernamePasswordAuthenticationToken.authenticated(user, null, user.getAuthorities());
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

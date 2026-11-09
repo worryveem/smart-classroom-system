@@ -72,10 +72,10 @@ export function AuthProvider({ children }) {
     setAccessToken(token)
   }, [])
 
-  const logout = useCallback(() => {
+  const logout = useCallback((reason = 'logout') => {
     loginOperation.current++
     loginController.current?.abort()
-    clearAccessToken('logout')
+    clearAccessToken(reason === 'password-changed' ? 'password-changed' : 'logout')
     setAuth({ status: 'anonymous', user: null })
   }, [])
 

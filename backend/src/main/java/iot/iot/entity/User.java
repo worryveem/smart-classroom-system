@@ -21,6 +21,15 @@ public class User {
     @Column(name = "role", nullable = false, columnDefinition = "ENUM('ADMIN','TEACHER','STUDENT')")
     private UserRole role;
 
+    @Column(name="full_name",nullable=false,length=100)
+    private String fullName="";
+    @Column(nullable=false,length=254)
+    private String email="";
+    @Column(nullable=false,length=30)
+    private String phone="";
+    @Column(name="credentials_version",nullable=false)
+    private long credentialsVersion=0;
+
     @org.hibernate.annotations.Generated(event = org.hibernate.generator.EventType.INSERT)
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false, columnDefinition = "DATETIME")
     private LocalDateTime createdAt;
@@ -35,4 +44,12 @@ public class User {
     public UserRole getRole() { return role; }
     public void setRole(UserRole role) { this.role = role; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public String getFullName() { return fullName; }
+    public void setFullName(String value) { fullName=value; }
+    public String getEmail() { return email; }
+    public void setEmail(String value) { email=value; }
+    public String getPhone() { return phone; }
+    public void setPhone(String value) { phone=value; }
+    public long getCredentialsVersion() { return credentialsVersion; }
+    public void invalidateCredentials() { credentialsVersion++; }
 }

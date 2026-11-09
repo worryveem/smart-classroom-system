@@ -28,7 +28,7 @@ async function setup(page, options = {}) {
     let status = 200, data
     if (url.pathname === '/api/iot/rooms/101') return route.fulfill({ status: 200, headers, contentType: 'application/json', body: JSON.stringify({ success: true, data: { id: 101, name: 'Ph?ng 101', iotEnabled: true, sensorId: 'node1_sensor', actuatorId: 'node2_actuator', devices: [] } }) })
     if (url.pathname === '/api/auth/me') data = { id: 91, username: 'dashboard_fixture', role: 'TEACHER' }
-    else if (url.pathname === '/api/classroom/permission') data = { allowed: state.permissionAllowed !== false, reason: state.permissionAllowed === false ? 'Bạn cần lịch đã duyệt đang trong giờ sử dụng' : 'Đang trong ca được cấp quyền', bookingId: 1 }
+    else if (url.pathname === '/api/classroom/permission') data = { allowed: state.permissionAllowed !== false, reason: state.permissionAllowed === false ? 'Bạn cần lịch đã duyệt đang trong giờ sử dụng' : 'Đang trong ca được cấp quyền', bookingId: 1, automaticEnabled: state.automaticEnabled }
     else if (url.pathname === '/api/iot/rooms/101/state') {
       if (state.stateWait) await state.stateWait
       status = state.status; data = state.payload
@@ -65,7 +65,7 @@ test.beforeEach(async ({ page }) => {
 test.afterEach(async ({ page }) => { expect(page.runtimeErrors).toEqual([]) })
 
 test('shows sensor values, explicit connections, AUTO and chronological real chart data', async ({ page }) => {
-  const { state, fixtureToken } = await setup(page)
+  const { state, fixtureToken } = await setup(page, { automaticEnabled: true })
   await ready(page)
   await expect(page.getByRole('article', { name: 'Độ ẩm', exact: true })).toContainText('71')
   await expect(page.getByRole('article', { name: 'Ánh sáng', exact: true })).toContainText('230')
@@ -73,6 +73,9 @@ test('shows sensor values, explicit connections, AUTO and chronological real cha
   await expect(page.getByRole('article', { name: 'Điều khiển FAN' })).toContainText('OFF')
   await expect(page.getByRole('article', { name: 'Điều khiển LIGHT' })).toContainText('ON')
   await expect(page.locator('.auto-status')).toContainText('Đang bật')
+  await expect(page.getByRole('button', { name: 'Bật FAN', exact: true })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Tắt LIGHT', exact: true })).toBeDisabled()
+  await expect(page.getByRole('link', { name: 'Cấu hình tự động quạt và đèn' })).toHaveAttribute('href','/automation')
   await expect(page.getByRole('button', { name: /AUTO/ })).toHaveCount(0)
   await expect(page.locator('.recharts-line')).toHaveCount(3)
   const mapped = await page.evaluate(async () => {

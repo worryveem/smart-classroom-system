@@ -18,12 +18,16 @@ public class ClassroomControlService {
     private final ControlService control;
     private final UserRepository users;
     private final RoomIotAccess access;
-    public ClassroomControlService(ClassroomService classroom,ControlService control,UserRepository users,RoomIotAccess access) { this.classroom=classroom; this.control=control; this.users=users; this.access=access; }
+    private final iot.iot.ai.AutomationService automation;
+    public ClassroomControlService(ClassroomService classroom,ControlService control,UserRepository users,RoomIotAccess access,iot.iot.ai.AutomationService automation) { this.classroom=classroom; this.control=control; this.users=users; this.access=access; this.automation=automation; }
     // Each persistence call commits separately; never hold a transaction during IoT HTTP.
     public ControlResponse execute(ControlRequest input,CustomUserDetails actor) {
         return execute(input,actor,101);
     }
     public ControlResponse execute(ControlRequest input,CustomUserDetails actor,int roomId) {
+        return automation.exclusive(() -> { automation.requireManual(); return executeManual(input,actor,roomId); });
+    }
+    private ControlResponse executeManual(ControlRequest input,CustomUserDetails actor,int roomId) {
         if(users.matchesReservedCommandActor(actor.getUsername())!=0)
             throw new IntegrationException(HttpStatus.FORBIDDEN,"Username RULE_ENGINE is reserved for automatic commands");
         access.requireActuator(roomId);

@@ -28,7 +28,7 @@ export function RoleRoute({ roles }) {
       <ShieldCheck size={36} aria-hidden="true" />
       <p className="eyebrow">Quyền truy cập</p>
       <h1>Bạn không có quyền truy cập</h1>
-      <p>Khu vực quản trị chỉ dành cho tài khoản ADMIN.</p>
+      <p>Trang này không dành cho vai trò của tài khoản hiện tại.</p>
       <Link to="/dashboard" className="primary-button">Về trang tổng quan</Link>
     </section>
   )

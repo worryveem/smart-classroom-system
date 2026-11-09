@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import axios from 'axios'
 import { Activity, ArrowRight, Eye, EyeOff, Lightbulb, LockKeyhole, School, ShieldCheck, UserRound, Wifi } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext.jsx'
+import { useLocation } from 'react-router-dom'
 
 function loginError(error) {
   const status = error.response?.status
@@ -13,6 +14,7 @@ function loginError(error) {
 }
 
 export default function LoginPage() {
+  const location=useLocation()
   const { login, reason } = useAuth()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -73,6 +75,7 @@ export default function LoginPage() {
           <h2 id="login-title">Đăng nhập SmartClass</h2>
           <p className="login-description">Sử dụng tài khoản được cấp để truy cập không gian lớp học của bạn.</p>
           {reason === 'expired' && <p className="notice" role="status">Phiên đăng nhập đã hết hạn hoặc không còn hợp lệ. Vui lòng đăng nhập lại.</p>}
+          {(reason === 'password-changed' || location.state?.passwordChanged === true) && <p className="notice" role="status">Đổi mật khẩu thành công. Vui lòng đăng nhập lại bằng mật khẩu mới.</p>}
           {error && <p className="form-alert" role="alert">{error}</p>}
           <form onSubmit={submit} noValidate aria-label="Đăng nhập" aria-busy={submitting}>
             <div className="form-field">

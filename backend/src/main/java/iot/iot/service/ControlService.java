@@ -29,6 +29,15 @@ public class ControlService {
         if (users.matchesReservedCommandActor(username) != 0) {
             throw new IntegrationException(HttpStatus.FORBIDDEN, "Username RULE_ENGINE is reserved for automatic commands");
         }
+        return dispatch(request, username);
+    }
+
+    // Internal entry point: never expose the automatic actor through an HTTP request body.
+    public ControlResponse automatic(ControlRequest request) {
+        return dispatch(request, "RULE_ENGINE");
+    }
+
+    private ControlResponse dispatch(ControlRequest request, String username) {
         String deviceId = properties.actuatorDeviceId();
         if (!devices.existsByDeviceId(deviceId)) {
             throw new IntegrationException(HttpStatus.NOT_FOUND, "Configured actuator device was not found");

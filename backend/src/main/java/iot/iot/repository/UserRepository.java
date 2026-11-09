@@ -8,6 +8,9 @@ public interface UserRepository extends JpaRepository<User, Long>, org.springfra
     Optional<User> findByUsername(String username);
     boolean existsByUsername(String username);
     boolean existsByUsernameAndIdNot(String username, Long id);
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select u from User u where u.id=:id")
+    Optional<User> findByIdForUpdate(@org.springframework.data.repository.query.Param("id") long id);
 
     // Use the same comparison rules as users.username / command_logs.trigger_by, including accents and width.
     @org.springframework.data.jpa.repository.Query(value = "SELECT CONVERT(:username USING utf8mb4) COLLATE utf8mb4_unicode_ci = _utf8mb4'RULE_ENGINE' COLLATE utf8mb4_unicode_ci", nativeQuery = true)

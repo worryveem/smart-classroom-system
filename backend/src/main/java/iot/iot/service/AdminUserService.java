@@ -70,7 +70,7 @@ public class AdminUserService {
     @Transactional
     public AdminUserResponse update(long id, UpdateUserRequest request, long actorId) {
         var admins = lockAdmins(actorId);
-        User user = require(id);
+        User user = users.findByIdForUpdate(id).orElseThrow(() -> new AdminOperationException(NOT_FOUND,"User not found"));
         rejectReservedUsername(request.username());
         if (users.existsByUsernameAndIdNot(request.username(), id)) throw new AdminOperationException(CONFLICT, "Username already exists");
         if (user.getRole() == UserRole.ADMIN && request.role() != UserRole.ADMIN && admins.size() <= 1) {
@@ -78,7 +78,10 @@ public class AdminUserService {
         }
         user.setUsername(request.username());
         user.setRole(request.role());
-        if (request.password() != null && !request.password().isBlank()) user.setPasswordHash(encoder.encode(request.password()));
+        if (request.password() != null && !request.password().isBlank()) {
+            user.setPasswordHash(encoder.encode(request.password()));
+            user.invalidateCredentials();
+        }
         return AdminUserResponse.from(users.saveAndFlush(user));
     }
 

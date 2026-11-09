@@ -28,6 +28,7 @@ export default function WorkspacePanel() {
   }
   const bookings = resource.data?.bookings || [], incidents = resource.data?.incidents || []
   return <section className="workspace-panel" aria-label="Không gian công việc">
+    {!admin && !student && <p><Link to="/my-schedule">Xem toàn bộ lịch và lịch sử đăng ký →</Link></p>}
     <header><div><p className="eyebrow">{admin ? 'Cần xử lý' : student ? 'Theo dõi của bạn' : 'Lịch làm việc của bạn'}</p><h2>{admin ? 'Lịch chờ duyệt toàn dãy nhà' : student ? 'Sự cố bạn đã báo' : 'Lịch của tôi'}</h2></div><button className="secondary-button" onClick={resource.refresh} disabled={resource.refreshing}><RefreshCw size={15} />Làm mới công việc</button></header>
     {resource.error && <p className="form-alert error" role="alert">Chưa tải được công việc cá nhân.{resource.data ? ' Đang hiển thị dữ liệu cũ.' : ' Bạn vẫn có thể tra cứu phòng bên dưới.'}</p>}
     {resource.loading && <p role="status">Đang tải công việc…</p>}

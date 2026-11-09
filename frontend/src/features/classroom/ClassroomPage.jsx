@@ -36,6 +36,21 @@ export default function ClassroomPage() {
   const [report, setReport] = useState(null), [events, setEvents] = useState(null), [decision, setDecision] = useState(null), [incidentEdit, setIncidentEdit] = useState(null)
   const [from, setFrom] = useState(''), [to, setTo] = useState('')
   const [filter, setFilter] = useState(''), operation = useRef(false), mounted = useRef(false)
+  const [focusedBooking, setFocusedBooking] = useState(null), [linkError, setLinkError] = useState('')
+  useEffect(() => {
+    const controller = new AbortController(); setFocusedBooking(null); setLinkError('')
+    const bookingId=searchParams.get('bookingId'), incidentId=searchParams.get('incidentId')
+    if (bookingId && staff) {
+      if (!/^[1-9]\d{0,18}$/.test(bookingId)) { setLinkError('Mã lịch trong đường dẫn không hợp lệ.'); return () => controller.abort() }
+      read(`bookings/${bookingId}`, controller.signal, roomId).then(row => { if (!controller.signal.aborted) { if (row?.room_id !== roomId) throw new Error('Wrong room'); setFocusedBooking(row) } }).catch(e => { if (!controller.signal.aborted) setLinkError(e.response?.data?.message || 'Không mở được lịch được chọn trong phòng này.') })
+    }
+    if (incidentId && searchParams.get('tab') === 'incidents') {
+      if (!/^[1-9]\d{0,18}$/.test(incidentId)) { setLinkError('Mã sự cố trong đường dẫn không hợp lệ.'); return () => controller.abort() }
+      Promise.all([read(`incidents/${incidentId}`,controller.signal,roomId),read(`incidents/${incidentId}/events`,controller.signal,roomId)]).then(([incident,history]) => { if (!controller.signal.aborted) { if (incident?.room_id !== roomId) throw new Error('Wrong room'); setEvents({ title: incident.title, rows: history, incident }) } }).catch(e => { if (!controller.signal.aborted) setLinkError(errorText(e)) })
+    }
+    return () => controller.abort()
+  }, [searchParams, roomId, revision, staff])
+  const bookingRows = Array.isArray(rows) ? focusedBooking && !rows.some(row => row.id === focusedBooking.id) ? [focusedBooking, ...rows] : rows : []
   useEffect(() => { setTab(searchParams.get('tab') === 'incidents' ? 'incidents' : 'bookings'); setReport(null); setEvents(null); setDecision(null); setIncidentEdit(null); setEditingBooking(null); setFilter(''); setNotice('') }, [roomId, searchParams])
   useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
   useEffect(() => {
@@ -99,6 +114,7 @@ export default function ClassroomPage() {
     {permission && <div className="classroom-access"><strong>{permission.allowed ? 'Được phép điều khiển' : 'Chỉ theo dõi'}</strong><span>{permission.reason}. Quyền được Backend kiểm tra tại thời điểm gửi lệnh.</span></div>}
     <nav className="classroom-tabs" aria-label="Nghiệp vụ phòng học">{tabs.filter(([id]) => (id !== 'attempts' || (staff && iot)) && (id !== 'settings' || (admin && iot))).map(([id, label]) => <button key={id} aria-current={id === tab ? 'page' : undefined} onClick={() => { setTab(id); setNotice('') }} disabled={busy}>{label}</button>)}</nav>
     {error && <div className="classroom-message error" role="alert">{error}</div>}
+    {linkError && <div className="classroom-message error" role="alert">{linkError}</div>}
     {notice && <div className="classroom-message" role="status">{notice}</div>}
     {!rows && !error && <p role="status">Đang tải dữ liệu phòng học…</p>}
 
@@ -114,13 +130,13 @@ export default function ClassroomPage() {
         <Field label="Từ (UTC+07)" type="datetime-local" required value={from} onChange={e => setFrom(e.target.value)} /><Field label="Đến (UTC+07)" type="datetime-local" required value={to} onChange={e => setTo(e.target.value)} /><button disabled={busy}>Lọc lịch</button><button type="button" onClick={() => { setFilter(''); setFrom(''); setTo('') }}>Mặc định</button>
       </form><p className="classroom-note">Mặc định từ 7 ngày trước đến 38 ngày sau; tối đa 500 lịch trong khoảng lọc không quá 93 ngày.</p>
         {Array.isArray(rows) && <Table headers={['Buổi học', 'Giáo viên', 'Thời gian', 'Trạng thái', 'Thao tác']}>
-          {rows.map(row => <tr key={row.id}><td><strong>{row.title}</strong><small>Phòng {row.room_id || roomId} · {row.expected_attendees || 1} người dự kiến</small>{row.decision_note && <small>{row.decision_note}</small>}</td><td>{row.owner_name}</td><td>{formatTime(row.starts_at, true)}<small>đến {formatTime(row.ends_at, true)}</small></td><td><Badge status={row.status} /></td><td><div className="classroom-actions">
+          {bookingRows.map(row => <tr key={row.id} className={row.id === focusedBooking?.id ? 'classroom-focused' : ''}><td><strong>{row.title}</strong>{row.id === focusedBooking?.id && <small>Được mở từ thông báo</small>}<small>Phòng {row.room_id || roomId} · {row.expected_attendees || 1} người dự kiến</small>{row.decision_note && <small>{row.decision_note}</small>}</td><td>{row.owner_name}</td><td>{formatTime(row.starts_at, true)}<small>đến {formatTime(row.ends_at, true)}</small></td><td><Badge status={row.status} /></td><td><div className="classroom-actions">
             {admin && row.status === 'PENDING' && timestampMillis(row.expires_at || row.starts_at) > Date.now() && <><button disabled={busy || roomInfo?.status !== 'ACTIVE'} onClick={() => setDecision({ row, status: 'APPROVED' })}>Duyệt</button><button disabled={busy} onClick={() => setDecision({ row, status: 'REJECTED' })}>Từ chối</button></>}
             {(admin || row.owner_id === user.id) && row.status === 'PENDING' && timestampMillis(row.expires_at || row.starts_at) > Date.now() && <button disabled={busy || roomInfo?.status !== 'ACTIVE'} onClick={() => setEditingBooking(row)}>Sửa đăng ký</button>}
             {(admin || row.owner_id === user.id) && ['PENDING', 'APPROVED'].includes(row.status) && timestampMillis(row.ends_at) > Date.now() && <button disabled={busy} onClick={() => setDecision({ row, status: 'CANCELLED' })}>Hủy lịch</button>}
             {staff && (admin || row.owner_id === user.id) && <button disabled={busy} onClick={() => showReport(row.id)}>Báo cáo</button>}
           </div></td></tr>)}
-        </Table>}{Array.isArray(rows) && !rows.length && <p className="classroom-empty">Chưa có lịch trong khoảng thời gian này.</p>}
+        </Table>}{Array.isArray(rows) && !bookingRows.length && <p className="classroom-empty">Chưa có lịch trong khoảng thời gian này.</p>}
       </section>
     </>}
 
@@ -156,7 +172,7 @@ export default function ClassroomPage() {
     {decision && <Modal title={`${labels[decision.status]} lịch sử dụng`} subtitle={decision.row.title} busy={busy} onClose={() => setDecision(null)}><form className="classroom-dialog" onSubmit={async e => { e.preventDefault(); const note = new FormData(e.currentTarget).get('note'); if (await act(() => api.patch(`/api/classroom/bookings/${decision.row.id}`, { status: decision.status, note }))) setDecision(null) }}><label className="classroom-field"><span>Ghi chú quyết định</span><textarea data-autofocus name="note" maxLength={500} rows={3} /></label><button disabled={busy}>Xác nhận</button>{error && <p role="alert">{error}</p>}</form></Modal>}
     {editingBooking && <BookingEditModal booking={{ ...editingBooking, room_id: editingBooking.room_id || roomId }} busy={busy} error={error} onClose={() => setEditingBooking(null)} onSave={body => act(() => api.put(`/api/classroom/bookings/${editingBooking.id}`, body), 'Đã cập nhật đăng ký; hạn duyệt không được gia hạn.')} />}
     {incidentEdit && <Modal title="Cập nhật xử lý sự cố" subtitle={incidentEdit.title} busy={busy} onClose={() => setIncidentEdit(null)}><form className="classroom-dialog" onSubmit={async e => { e.preventDefault(); const data = Object.fromEntries(new FormData(e.currentTarget)); if (await act(() => api.patch(`/api/classroom/incidents/${incidentEdit.id}`, data))) setIncidentEdit(null) }}><label className="classroom-field"><span>Trạng thái mới</span><select name="status" defaultValue={incidentEdit.status}>{['OPEN', 'IN_PROGRESS', 'RESOLVED'].map(s => <option key={s} value={s}>{labels[s]}</option>)}</select></label><label className="classroom-field"><span>Nội dung xử lý / lý do mở lại</span><textarea name="note" data-autofocus required maxLength={2000} rows={4} /></label><button disabled={busy}>Lưu xử lý</button>{error && <p role="alert">{error}</p>}</form></Modal>}
-    {events && <Modal title="Lịch sử xử lý" subtitle={events.title} onClose={() => setEvents(null)}><div className="classroom-dialog">{events.rows.map(row => <article className="classroom-event" key={row.id}><Badge status={row.status} /><p>{row.note}</p><small>{row.actor} · {formatTime(row.created_at, true)}</small></article>)}</div></Modal>}
+    {events && <Modal title="Lịch sử xử lý" subtitle={events.title} onClose={() => setEvents(null)}><div className="classroom-dialog">{events.incident && <><Badge status={events.incident.status} /><p>{events.incident.description}</p></>}{events.rows.map(row => <article className="classroom-event" key={row.id}><Badge status={row.status} /><p>{row.note}</p><small>{row.actor} · {formatTime(row.created_at, true)}</small></article>)}</div></Modal>}
     {report && <Modal title="Báo cáo buổi học" subtitle={report.booking.title} onClose={() => setReport(null)}><div className="classroom-dialog"><p>{formatTime(report.booking.starts_at, true)} – {formatTime(report.booking.ends_at, true)}</p><p>Trạng thái lịch: {labels[report.booking.status]}</p><div className="classroom-metrics">{[['Mẫu đo thật', report.environment.samples], ['Nhiệt độ TB', report.environment.average_temp, '°C'], ['Độ ẩm TB', report.environment.average_humid, '%'], ['Ánh sáng TB', report.environment.average_lux, 'lux'], ['Mẫu vượt ngưỡng nhiệt', report.environment.hot_samples], ['Mẫu thiếu sáng có người', report.environment.dark_occupied_samples]].map(([label, value, unit]) => <article key={label}><span>{label}</span><strong>{value == null ? 'Chưa có dữ liệu' : `${Number(value).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} ${unit || ''}`}</strong></article>)}</div><h3>Kết quả lệnh trong ca</h3>{report.commands.length ? report.commands.map(c => <p key={c.status}>{c.status === 'PENDING' ? 'Đang chờ / chưa xác nhận' : labels[c.status] || c.status}: {c.total}</p>) : <p>Chưa có lần điều khiển gắn với ca này.</p>}<h3>Cảnh báo giao với thời gian buổi học</h3>{report.alerts.length ? report.alerts.map(a => <p key={a.id}>{a.message}</p>) : <p>Chưa ghi nhận cảnh báo.</p>}<p className="classroom-note">{report.note}</p><button onClick={exportReport}>Tải báo cáo CSV</button></div></Modal>}
   </div>
 }

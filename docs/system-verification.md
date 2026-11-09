@@ -1,5 +1,28 @@
 # Kiểm thử tích hợp SmartClass IoT
 
+## Tài khoản cá nhân — 09/11/2026
+
+- Backend với MySQL riêng: 143 bài đạt, không bỏ qua. Bảy bài `AccountIntegrationTests` kiểm tra ba vai trò cập nhật đúng hồ sơ của mình, chặn trường danh tính/quyền, kiểm tra liên hệ, yêu cầu mật khẩu cũ, thu hồi mọi token cũ, ADMIN đặt lại mật khẩu và response không cache/không lộ hash.
+- Frontend: 89 bài giao diện khác nhau đạt qua lượt toàn bộ và lượt chạy lại 9 bài tài khoản. Đã sửa nhãn truy cập của trường khi có lỗi và giữ thông báo đổi mật khẩu qua chuyển trang. Có kiểm tra lưu/tải lại, giữ dữ liệu khi lỗi, chống gửi lặp, sai mật khẩu cũ và đăng xuất sau đổi mật khẩu.
+- Backend thật trên origin 5173: 9 bài tích hợp chỉ đọc đạt, gồm đọc hồ sơ cho ADMIN/TEACHER/STUDENT và 6 bài hồi quy đăng nhập/lịch sử/lịch cá nhân/thông báo. Không đổi thông tin hoặc mật khẩu tài khoản thật để kiểm thử.
+- Build Frontend và đóng gói JAR thành công. Backend đã khởi động lại tại 8080 và áp dụng V6; Frontend tại 5173.
+- Đã xem ảnh trang tài khoản ở 320 px và desktop 1366 px; không tràn ngang. Vùng tài khoản ở đầu trang mở `/profile` cho cả ba vai trò.
+- Giữ nguyên hợp đồng đăng nhập `/api/auth/me`; JWT bổ sung phiên bản thông tin đăng nhập để thu hồi sau đổi/đặt lại mật khẩu. Không sửa MQTT, flow Node-RED, firmware hoặc các bảng dữ liệu IoT.
+
+Hướng dẫn: [tài khoản cá nhân](tai-khoan-ca-nhan.md).
+
+## Lịch giáo viên và thông báo — 09/11/2026
+
+- Backend: toàn bộ 136 bài kiểm thử MySQL trên database `smartclass_verify_*` đạt, không bỏ qua. Chạy lại 14 bài `RoleWorkflowIntegrationTests` sau khi hoàn thiện kiểm tra bộ lọc/ngắn hóa nội dung thông báo cũng đạt.
+- Các kiểm thử mới xác minh lịch cá nhân gồm quá khứ/sắp tới, phạm vi chủ lịch, phân trang ổn định và lọc giao ngày; quyền xem/đánh dấu thông báo, thời điểm đọc idempotent, mốc đánh dấu tất cả không tiêu thụ thông báo mới, hết hạn/bảo trì không thông báo lặp và rollback không để lại thông báo.
+- Frontend: 80 bài giao diện khác nhau đạt qua lượt toàn bộ và lượt chạy lại 9 bài `teaching-notifications.spec.js` sau khi bổ sung nhãn truy cập rõ ràng cho bộ lọc lịch. Nhóm hồi quy có 79 bài đạt ở lượt đầu, một bài bộ lọc được sửa và đạt ở lượt chạy lại. Các bài tích hợp tùy chọn không tính vào số này.
+- Với Backend thật trên origin 5173: 6 bài đạt, gồm đăng nhập/CORS/tải lại/đăng xuất của ba vai trò, Dashboard/History chỉ đọc và lịch cá nhân/thông báo chỉ đọc. CRUD thật tùy chọn trên database test có sẵn chưa bật.
+- Đã build Frontend và đóng gói JAR thành công. Backend khởi động lại trên 8080, áp dụng Flyway V5; Frontend hoạt động trên 5173. API thật: ADMIN/TEACHER đọc lịch cá nhân thành công; STUDENT nhận 403; ba vai trò đều đọc được thông báo riêng.
+- Đã xem ảnh Lịch của tôi ở 390 px và Thông báo ở 320 px; các bài kiểm thử xác nhận không tràn ngang. Chi tiết/hủy lịch, lỗi đã đọc, thông báo mới đến trong lúc đánh dấu tất cả, điều hướng tới lịch ngoài khoảng mặc định và mở lịch sử sự cố đều được kiểm tra.
+- Không tạo lịch/sự cố hoặc thông báo mẫu trên database chính, không gửi lệnh phần cứng. Không thay flow Node-RED, MQTT hoặc firmware. Thông báo chỉ lưu cho sự kiện từ thời điểm triển khai; chưa có email/push hệ điều hành.
+
+Hướng dẫn và API: [lịch giáo viên và thông báo trong ứng dụng](lich-giao-vien-va-thong-bao.md).
+
 ## Sửa nghiệp vụ và giao diện ba vai trò — 08/11/2026
 
 - Backend: toàn bộ 128 bài với MySQL trên database riêng đạt, không bỏ qua. Sau đó nhóm `RoleWorkflowIntegrationTests` và `BuildingMigrationTests` có 8 bài đạt, gồm bài mới bảo vệ thiết bị đang cấu hình; tổng 129 bài khác nhau đạt qua các lượt.

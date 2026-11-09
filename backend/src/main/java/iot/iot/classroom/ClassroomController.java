@@ -27,6 +27,7 @@ public class ClassroomController {
         @RequestParam(required=false) @DateTimeFormat(iso=DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
         @RequestParam(defaultValue="101") int roomId) { return ok(service.bookings(from,to,roomId)); }
     @PostMapping("/bookings") public Object createBooking(@Valid @RequestBody BookingInput input,@AuthenticationPrincipal CustomUserDetails actor) { return ok(service.createBooking(input,actor)); }
+    @GetMapping("/bookings/{id}") public Object bookingDetail(@PathVariable long id,@AuthenticationPrincipal CustomUserDetails actor) { return ok(service.bookingDetail(id,actor)); }
     @PutMapping("/bookings/{id}") public Object editBooking(@PathVariable long id,@Valid @RequestBody BookingInput input,@AuthenticationPrincipal CustomUserDetails actor) { return ok(service.editBooking(id,input,actor)); }
     @PatchMapping("/bookings/{id}") public Object decision(@PathVariable long id,@Valid @RequestBody BookingDecision input,@AuthenticationPrincipal CustomUserDetails actor) { return ok(service.decide(id,input,actor)); }
     @GetMapping("/bookings/{id}/report") public Object report(@PathVariable long id,@AuthenticationPrincipal CustomUserDetails actor) { return ok(service.report(id,actor)); }
@@ -34,6 +35,7 @@ public class ClassroomController {
     @PostMapping("/alerts/{id}/acknowledge") public Object acknowledge(@PathVariable long id,@AuthenticationPrincipal CustomUserDetails actor) { service.acknowledge(id,actor); return ok(null); }
     @GetMapping("/incidents") public Object incidents(@AuthenticationPrincipal CustomUserDetails actor,@RequestParam(defaultValue="101") int roomId) { return ok(service.incidents(actor,roomId)); }
     @PostMapping("/incidents") public Object createIncident(@Valid @RequestBody IncidentInput input,@AuthenticationPrincipal CustomUserDetails actor) { return ok(service.createIncident(input,actor)); }
+    @GetMapping("/incidents/{id}") public Object incidentDetail(@PathVariable long id,@AuthenticationPrincipal CustomUserDetails actor) { return ok(service.incidentDetail(id,actor)); }
     @PatchMapping("/incidents/{id}") public Object updateIncident(@PathVariable long id,@Valid @RequestBody IncidentUpdate input,@AuthenticationPrincipal CustomUserDetails actor) { return ok(service.updateIncident(id,input,actor)); }
     @GetMapping("/incidents/{id}/events") public Object events(@PathVariable long id,@AuthenticationPrincipal CustomUserDetails actor) { return ok(service.incidentEvents(id,actor)); }
     @GetMapping("/attempts") public Object attempts(@AuthenticationPrincipal CustomUserDetails actor,@RequestParam(defaultValue="101") int roomId) { return ok(service.attempts(actor,roomId)); }

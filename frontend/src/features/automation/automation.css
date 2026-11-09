@@ -1,0 +1,41 @@
+.automation-page { max-width: 1040px; margin: 0 auto; }
+.automation-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 30px; }
+.automation-heading h1 { font-size: 28px; letter-spacing: -.8px; margin: 0 0 6px; }
+.automation-heading p { color: var(--muted); margin: 0; }
+.automation-tag { color: var(--warning); background: var(--warning-soft); border: 1px solid #eadbbd; border-radius: 6px; padding: 5px 10px; font-size: 12px; white-space: nowrap; }
+.automation-control { position: relative; display: flex; align-items: center; gap: 22px; padding: 34px; border: 1px solid var(--line); border-left: 5px solid #abb3c6; border-radius: 12px; background: var(--surface); }
+.automation-control.enabled { border-left-color: var(--primary); }
+.automation-symbol { display: grid; place-items: center; color: var(--primary); background: var(--primary-soft); width: 72px; height: 72px; border-radius: 18px; flex-shrink: 0; }
+.automation-control-copy { flex: 1; }
+.automation-control h2 { margin: 0 0 6px; font-size: 19px; }
+.automation-control p { color: var(--muted); margin: 0 0 12px; font-size: 13px; }
+.automation-state { font-size: 12px; font-weight: 600; color: var(--muted); }
+.enabled .automation-state { color: var(--primary); }
+.automation-switch { border: 0; background: #77839a; padding: 4px; width: 62px; height: 36px; border-radius: 24px; flex-shrink: 0; }
+.automation-switch span { display: block; background: white; width: 28px; height: 28px; border-radius: 50%; transition: transform .15s; }
+.automation-switch[aria-checked=true] { background: var(--primary); }
+.automation-switch[aria-checked=true] span { transform: translateX(26px); }
+.automation-saving { position: absolute; bottom: 8px; right: 30px; font-size: 11px; color: var(--muted); }
+.automation-integration { display: flex; gap: 12px; background: var(--warning-soft); color: #755319; border-radius: 8px; padding: 18px 22px; margin: 20px 0 32px; }
+.automation-integration svg { flex-shrink: 0; margin-top: 2px; }
+.automation-integration strong { font-size: 13px; }
+.automation-integration p { margin: 4px 0 0; font-size: 12px; line-height: 1.8; }
+.automation-details h2 { font-size: 17px; margin: 0 0 8px; }
+.automation-detail { display: flex; gap: 16px; border-bottom: 1px solid var(--line); padding: 22px 0; }
+.automation-detail svg { color: var(--primary); flex-shrink: 0; margin-top: 4px; }
+.automation-detail h3 { font-size: 14px; margin: 0 0 5px; }
+.automation-detail p { margin: 0; color: var(--muted); font-size: 13px; }
+.automation-footnote { color: var(--muted); font-size: 12px; margin-top: 22px; }
+.automation-footnote a { color: var(--primary); text-decoration: underline; }
+.automation-settings { background: var(--surface); padding: 24px; border: 1px solid var(--line); border-radius: 10px; margin: 24px 0; }
+.automation-settings h2 { font-size: 18px; margin: 0 0 8px; }
+.automation-settings > p { color: var(--muted); font-size: 13px; }
+.automation-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; margin: 22px 0; }
+.automation-fields label { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.automation-fields input { width: 100%; border: 1px solid var(--line); border-radius: 7px; padding: 11px 12px; min-height: 44px; }
+@media(max-width:600px) { .automation-fields { grid-template-columns: 1fr; }.automation-settings { padding: 18px; } }
+.automation-error, .automation-notice { padding: 14px 18px; border-radius: 8px; margin-bottom: 18px; }
+.automation-error { background: var(--danger-soft); color: var(--danger); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.automation-notice { color: var(--success); background: var(--success-soft); }
+@media (max-width: 600px) { .automation-heading { align-items: flex-start; }.automation-heading h1 { font-size: 23px; }.automation-control { padding: 24px 18px; gap: 14px; flex-wrap: wrap; }.automation-symbol { width: 48px; height: 48px; border-radius: 12px; }.automation-control-copy { flex-basis: calc(100% - 65px); }.automation-switch { margin-left: 62px; }.automation-integration { padding: 16px; } }
+@media (prefers-reduced-motion: reduce) { .automation-switch span { transition: none; } }

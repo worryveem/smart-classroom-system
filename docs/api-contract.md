@@ -111,3 +111,21 @@ Chưa xác nhận được nguồn ghi từ flow Node-RED thực vì dịch vụ
 - `GET /api/iot/rooms/{id}`: thêm `incidentSummary` gồm thiết bị, trạng thái và tổng số báo cáo đang mở, không có mô tả/người báo.
 
 Lịch trả thêm `expires_at`, có thể mang trạng thái EXPIRED. Chi tiết [vòng đời lịch và ma trận quyền](luong-nghiep-vu-theo-vai-tro.md).
+## Lịch cá nhân và thông báo
+
+`GET /api/teaching/bookings` và `GET /api/teaching/bookings/{id}` dành ADMIN/TEACHER, luôn giới hạn theo chủ lịch là tài khoản đang đăng nhập. Có bộ lọc khoảng ngày, phòng, trạng thái, quá khứ/sắp tới và phân trang.
+
+`GET /api/notifications`, `GET /api/notifications/unread-count`, `PATCH /api/notifications/{id}/read` và `POST /api/notifications/read-all` dành mọi tài khoản đã xác thực, chỉ truy cập thông báo của chính tài khoản. Đánh dấu tất cả nhận `upToId` để giữ thông báo mới đến ở trạng thái chưa đọc.
+
+`GET /api/classroom/bookings/{id}` dành ADMIN hoặc chủ lịch thuộc staff; `GET /api/classroom/incidents/{id}` dành ADMIN hoặc người báo. Các endpoint này phục vụ mở đúng bản ghi từ thông báo, không thay thế kiểm tra quyền.
+
+Chi tiết tham số, phân trang và loại sự kiện tại [lịch giáo viên và thông báo trong ứng dụng](lich-giao-vien-va-thong-bao.md).
+## Hồ sơ cá nhân và đổi mật khẩu
+
+Các API yêu cầu JWT, chỉ áp dụng với tài khoản đang đăng nhập:
+
+- GET `/api/account/profile`: trả `id`, `username`, `role`, `fullName`, `email`, `phone`, `createdAt`; không có hash hay phiên bản thông tin đăng nhập.
+- PUT `/api/account/profile`: chỉ nhận `{fullName,email,phone}`; không cho đổi role, username hoặc ID qua API này.
+- POST `/api/account/password`: nhận `{currentPassword,newPassword}`; sai mật khẩu hiện tại trả 400, đổi thành công trả 200 và mọi JWT cũ của tài khoản không còn hợp lệ ở request tiếp theo.
+
+Quy tắc dữ liệu và phiên đăng nhập tại [tài khoản cá nhân](tai-khoan-ca-nhan.md).

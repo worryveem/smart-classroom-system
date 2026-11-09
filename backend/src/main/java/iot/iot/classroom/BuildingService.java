@@ -16,7 +16,8 @@ import static iot.iot.classroom.ClassroomDtos.*;
 @Transactional(readOnly=true)
 public class BuildingService {
     private final JdbcTemplate db;
-    public BuildingService(JdbcTemplate db) { this.db=db; }
+    private final iot.iot.notification.NotificationService notifications;
+    public BuildingService(JdbcTemplate db,iot.iot.notification.NotificationService notifications) { this.db=db; this.notifications=notifications; }
     private void admin(CustomUserDetails actor) { if(actor.getRole()!=UserRole.ADMIN) throw new AccessDeniedException("Forbidden"); }
     public Map<String,Object> requireRoom(int id) {
         var rows=db.queryForList("SELECT * FROM classroom_rooms WHERE id=?",id);
@@ -38,7 +39,7 @@ public class BuildingService {
     }
     public List<Map<String,Object>> affectedBookings(int roomId,CustomUserDetails actor) {
         admin(actor); requireRoom(roomId);
-        return db.queryForList("SELECT id,title,owner_name,starts_at,ends_at,status FROM classroom_bookings WHERE room_id=? AND status IN ('PENDING','APPROVED') AND ends_at>? ORDER BY starts_at,id",roomId,ClassroomService.now());
+        return db.queryForList("SELECT id,title,owner_id,owner_name,starts_at,ends_at,status FROM classroom_bookings WHERE room_id=? AND status IN ('PENDING','APPROVED') AND ends_at>? ORDER BY starts_at,id",roomId,ClassroomService.now());
     }
     @Transactional
     public Map<String,Object> save(RoomInput input,CustomUserDetails actor,boolean create,boolean cancelAffectedBookings) {
@@ -49,6 +50,8 @@ public class BuildingService {
             if(!affected.isEmpty() && !cancelAffectedBookings) throw new AdminOperationException(CONFLICT,"Có "+affected.size()+" lịch bị ảnh hưởng. Xem danh sách và xác nhận hủy lịch trước khi bảo trì/tạm ngưng.");
             if(cancelAffectedBookings) db.update("UPDATE classroom_bookings SET status='CANCELLED',decision_note=LEFT(?,500) WHERE room_id=? AND status IN ('PENDING','APPROVED') AND ends_at>?",
                 "Phòng bảo trì/tạm ngưng: "+input.note().trim(),input.roomId(),ClassroomService.now());
+            if(cancelAffectedBookings) for(var booking:affected) notifications.send(((Number)booking.get("owner_id")).longValue(),"BOOKING_CANCELLED","Lịch bị hủy do phòng bảo trì/tạm ngưng",
+                "Phòng "+input.roomId()+" · "+booking.get("title")+" · "+input.note().trim(),"/my-schedule?bookingId="+booking.get("id"));
         }
         if(create) {
             if(db.queryForObject("SELECT COUNT(*) FROM classroom_rooms",Integer.class)>=200) throw new AdminOperationException(CONFLICT,"Nhà A hỗ trợ tối đa 200 phòng");

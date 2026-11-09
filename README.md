@@ -1,5 +1,9 @@
 # SmartClass IoT
 
+Đã có [Tài khoản cá nhân](docs/tai-khoan-ca-nhan.md) tại `/profile` cho cả ba vai trò: sửa họ tên/email/số điện thoại và đổi mật khẩu bằng mật khẩu hiện tại. Mở từ vùng tên tài khoản ở đầu trang. Tên đăng nhập và vai trò vẫn do ADMIN quản lý.
+
+Đã bổ sung [Lịch cá nhân giáo viên và thông báo trong ứng dụng](docs/lich-giao-vien-va-thong-bao.md): `/my-schedule` xem lịch cũ/sắp tới của chính tài khoản, `/notifications` xem và đánh dấu thông báo riêng. Chuông ở đầu trang tự cập nhật số chưa đọc. Khởi động Backend sẽ áp dụng Flyway V5 cho bảng thông báo; không thay đổi kết nối IoT.
+
 Đã mở rộng **Nhà A** tại `/building`: 3 tầng, 15 phòng, trạng thái theo lịch, tìm phòng trống, sức chứa, bảo trì và tỷ lệ đặt lịch. Chỉ phòng **101** có ESP thật; phòng khác không tạo chỉ số giả. Mỗi phòng có lịch, báo cáo và sự cố tại `/classroom?roomId=...`. Giáo viên chỉ điều khiển ESP khi có ca đã duyệt ở 101. Khởi động lại Backend để áp dụng Flyway V3. Xem [quản lý Nhà A](docs/building-a.md) và [nghiệp vụ phòng](docs/classroom-operations.md).
 
 Hệ thống IoT Phòng học Thông minh: ESP32, Mosquitto, Node-RED, Spring Boot BFF và React SPA.

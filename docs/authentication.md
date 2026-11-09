@@ -1,5 +1,9 @@
 # Authentication, JWT và phân quyền — Prompt 3
 
+## Thu hồi phiên khi đổi mật khẩu
+
+Từ V6, JWT mới chứa `credentialsVersion`. Filter so sánh với `users.credentials_version` mỗi request; token không khớp nhận 401. Token trước V6 thiếu claim chỉ được coi là phiên bản 0. Đổi mật khẩu qua hồ sơ hoặc ADMIN đặt lại mật khẩu đều tăng phiên bản; không yêu cầu lưu token riêng ở server. Chi tiết [tài khoản cá nhân](tai-khoan-ca-nhan.md).
+
 ## Chính sách quyền hiện tại
 
 `/api/commands` chỉ dành ADMIN/TEACHER; Backend ép TEACHER về chính `username` đang đăng nhập, không cho đổi phạm vi bằng `triggerBy`. STUDENT chỉ xem lịch sử cảm biến. Xác nhận cảnh báo yêu cầu ADMIN hoặc TEACHER có ca của mình đã duyệt đang diễn ra tại phòng; quyền này độc lập với trạng thái bộ điều khiển. Nội dung sự cố chỉ người báo và ADMIN xem, thông tin tổng hợp phòng không có mô tả/người báo. Ma trận và các API mới tại [luồng theo vai trò](luong-nghiep-vu-theo-vai-tro.md).
