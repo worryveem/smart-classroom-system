@@ -40,7 +40,7 @@ export default function OverviewPage() {
       <div><Wifi size={20} /><strong>{data ? rooms.filter(room => room.sensor_status === 'ONLINE').length : '—'}</strong><span>Phòng có dữ liệu mới</span></div>
     </section>
     <WorkspacePanel />
-    <div className="overview-section-heading"><div><h2>Chọn phòng để làm việc</h2><p>Xem lịch sử dụng hoặc mở cảm biến và thiết bị của đúng phòng.</p></div><Link to="/building">Tìm & quản lý phòng <ArrowUpRight size={16} /></Link></div>
+    <div className="overview-section-heading"><div><h2>Chọn phòng để làm việc</h2><p>Xem lịch sử dụng hoặc mở cảm biến và thiết bị của đúng phòng.</p></div><Link className="action-button" to="/building">Tìm & quản lý phòng <ArrowUpRight size={16} /></Link></div>
     {resource.loading && <p role="status">Đang tải tổng quan dãy nhà…</p>}
     {data && rooms.length === 0 && <div className="building-empty">Chưa có phòng trong dãy nhà.</div>}
     {floors.map(floor => <section className="building-floor" key={floor}><header><span>Tầng {floor}</span><div /><small>{rooms.filter(room => room.floor_number === floor).length} phòng</small></header><div className="overview-room-grid">{rooms.filter(room => room.floor_number === floor).map(room => <article className="overview-room" key={room.id} aria-label={`Phòng ${room.id}`}>
@@ -48,7 +48,7 @@ export default function OverviewPage() {
       <p>{room.name} · {room.capacity} chỗ</p>
       <p className="overview-booking">{room.current_booking ? `${room.current_booking.title} · Đến ${formatTime(room.current_booking.ends_at)}` : room.next_booking ? `Lịch tiếp: ${room.next_booking.title} · ${formatTime(room.next_booking.starts_at)}` : 'Chưa có lịch học tiếp theo'}</p>
       <p className="overview-connection"><Wifi size={15} />{connections[room.sensor_status] || 'Chưa rõ kết nối'}{Number(room.open_incidents) > 0 && <span> · {room.open_incidents} sự cố</span>}</p>
-      <div className="overview-room-actions"><Link to={`/classroom?roomId=${room.id}`} aria-label={`Lịch & vận hành phòng ${room.id}`}>Lịch & vận hành</Link><Link to={`/iot/rooms/${room.id}`} aria-label={`Thiết bị phòng ${room.id}`}>Thiết bị <ArrowUpRight size={15} /></Link></div>
+      <div className="overview-room-actions"><Link className="action-button" to={`/classroom?roomId=${room.id}`} aria-label={`Lịch & vận hành phòng ${room.id}`}>Lịch & vận hành</Link><Link className="action-button" to={`/iot/rooms/${room.id}`} aria-label={`Thiết bị phòng ${room.id}`}>Thiết bị <ArrowUpRight size={15} /></Link></div>
     </article>)}</div></section>)}
     <footer className="building-footnote">{data?.asOf ? `Cập nhật: ${formatTime(data.asOf, true)}. ` : ''}Tự cập nhật mỗi 15 giây khi trang đang hiển thị. Trạng thái sử dụng dựa trên lịch; kết nối IoT dựa trên mẫu đo gần nhất. Chọn phòng để kiểm tra trạng thái trực tiếp trước khi điều khiển.</footer>
   </div>

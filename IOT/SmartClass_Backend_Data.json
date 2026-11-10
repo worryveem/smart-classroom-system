@@ -1,0 +1,263 @@
+[
+  {
+    "id": "sc_data_tab",
+    "type": "tab",
+    "label": "SmartClass - ESP32 Data",
+    "disabled": false,
+    "info": "ESP32 MQTT to HTTP state and MySQL telemetry. No actuator commands."
+  },
+  {
+    "id": "sc_sensor",
+    "type": "mqtt in",
+    "z": "sc_data_tab",
+    "name": "smarthome/esp32/sensor/state",
+    "x": 200,
+    "y": 100,
+    "wires": [
+      [
+        "sc_normalize"
+      ]
+    ],
+    "topic": "smarthome/esp32/sensor/state",
+    "qos": "0",
+    "datatype": "utf8",
+    "broker": "sc_broker",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0
+  },
+  {
+    "id": "sc_relay",
+    "type": "mqtt in",
+    "z": "sc_data_tab",
+    "name": "smarthome/esp32/relay/state",
+    "x": 200,
+    "y": 180,
+    "wires": [
+      [
+        "sc_normalize"
+      ]
+    ],
+    "topic": "smarthome/esp32/relay/state",
+    "qos": "0",
+    "datatype": "utf8",
+    "broker": "sc_broker",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0
+  },
+  {
+    "id": "sc_normalize",
+    "type": "function",
+    "z": "sc_data_tab",
+    "name": "Normalize MQTT state",
+    "x": 530,
+    "y": 140,
+    "wires": [
+      [
+        "sc_debug"
+      ],
+      [
+        "sc_mysql"
+      ]
+    ],
+    "func": "if (msg.retain === true) return null;\nlet p = msg.payload;\ntry { if (typeof p === 'string') p = JSON.parse(p); } catch { return null; }\nif (!p || typeof p !== 'object' || Array.isArray(p)) return null;\nconst num = (v,lo,hi) => typeof v === 'number' && Number.isFinite(v) && v >= lo && v <= hi ? v : null;\nconst bool = v => v === true || v === 1 ? true : v === false || v === 0 ? false : null;\nconst now = Date.now();\nconst timestamp = new Date(now).toISOString();\nif (msg.topic === 'smarthome/esp32/sensor/state') {\n    if (!('dht_ok' in p) || !('motion' in p)) return null;\n    const temp = num(p.temperature,-40,80), humid = num(p.humidity,0,100);\n    const valid = bool(p.dht_ok) === true && temp !== null && humid !== null;\n    const demoLux = function demoLux(adc) {\n  if (!Number.isInteger(adc) || adc < 0 || adc > 4095) return { lux: null, quality: 'INVALID_ADC' };\n  // Moc phong bat den 10/11/2026: trung vi ADC 3916 -> 400 lux gia dinh.\n  // Giu chieu ADC giam khi sang hon; noi suy giua cac moc trinh dien.\n  const points = [[0, 1500], [2850, 700], [3916, 400], [4095, 100]];\n  const index = points.findIndex((point, i) => i > 0 && adc <= point[0]);\n  const [a, lowerLux] = points[index - 1];\n  const [b, upperLux] = points[index];\n  const lux = lowerLux + (adc - a) * (upperLux - lowerLux) / (b - a);\n  return { lux: Number(lux.toFixed(2)), quality: adc === 0 || adc === 4095 ? 'DEMO_ADC_LIMIT' : 'DEMO_ASSUMPTION' };\n};\n    const light = demoLux(p.ldr_adc);\n    const r = {device_id:'node1_sensor', temp:valid ? temp : null, humid:valid ? humid : null,\n        lux:light.lux, lux_estimated:true, lux_demo:true, lux_method:'DEMO_ROOM_LIGHT_V2', lux_quality:light.quality, occupancy:bool(p.pir_ready) === true ? bool(p.motion) : null,\n        ldr_adc:num(p.ldr_adc,0,4095), light_percent:num(p.light_percent,0,100),\n        connected:true, timestamp};\n    flow.set('scSensor',{at:now,record:r});\n    // Store the agreed demo-scale lux for backend automation testing; not calibrated lux.\n    const localTime = new Date(now + 7*3600000).toISOString().slice(0,19).replace('T',' ');\n    const sql = {topic:'INSERT INTO telemetry (device_id,temp,humid,lux,occupancy,`timestamp`) VALUES (?,?,?,?,?,?)',\n        payload:[r.device_id,r.temp,r.humid,r.lux,r.occupancy === null ? null : Number(r.occupancy),localTime]};\n    return [{payload:r},sql];\n}\nif (msg.topic === 'smarthome/esp32/relay/state') {\n    const fan=bool(p.fan_on), light=bool(p.light_on);\n    if (fan === null || light === null) return null;\n    const modes=['AUTO','MANUAL_ON','MANUAL_OFF'];\n    const fanMode=modes.includes(p.fan_mode) ? p.fan_mode : null;\n    const lightMode=modes.includes(p.light_mode) ? p.light_mode : null;\n    const r={device_id:'node2_actuator',FAN:fan,LIGHT:light,connected:true,timestamp,\n        AUTO:fanMode === null || lightMode === null ? null : fanMode === 'AUTO' && lightMode === 'AUTO',\n        fan_mode:fanMode,light_mode:lightMode,uart_ok:bool(p.uart_ok)};\n    flow.set('scRelay',{at:now,record:r});\n    return [{payload:r},null];\n}\nreturn null;",
+    "outputs": 2,
+    "noerr": 0,
+    "initialize": "flow.set('scSensor',null); flow.set('scRelay',null);",
+    "finalize": "",
+    "libs": []
+  },
+  {
+    "id": "sc_debug",
+    "type": "debug",
+    "z": "sc_data_tab",
+    "name": "Normalized data",
+    "x": 850,
+    "y": 100,
+    "wires": [],
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg"
+  },
+  {
+    "id": "sc_mysql",
+    "type": "mysql",
+    "z": "sc_data_tab",
+    "name": "Insert telemetry - configure MySQL",
+    "x": 860,
+    "y": 180,
+    "wires": [
+      [
+        "sc_db_debug"
+      ]
+    ],
+    "mydb": "sc_database"
+  },
+  {
+    "id": "sc_db_debug",
+    "type": "debug",
+    "z": "sc_data_tab",
+    "name": "MySQL result",
+    "x": 1130,
+    "y": 180,
+    "wires": [],
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg"
+  },
+  {
+    "id": "sc_get",
+    "type": "http in",
+    "z": "sc_data_tab",
+    "name": "Backend GET state",
+    "x": 210,
+    "y": 320,
+    "wires": [
+      [
+        "sc_state"
+      ]
+    ],
+    "url": "/smartclass/api/state",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": ""
+  },
+  {
+    "id": "sc_state",
+    "type": "function",
+    "z": "sc_data_tab",
+    "name": "State freshness 10 seconds",
+    "x": 540,
+    "y": 320,
+    "wires": [
+      [
+        "sc_response"
+      ]
+    ],
+    "func": "const now=Date.now();\nconst read=(key,id,fields) => {\n    const c=flow.get(key);\n    if (c && now >= c.at && now-c.at < 10000) return c.record;\n    return {device_id:id,...fields,connected:false,timestamp:c ? c.record.timestamp : null};\n};\nmsg.headers={'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'};\nmsg.statusCode=200;\nmsg.payload={devices:[\n    read('scSensor','node1_sensor',{temp:null,humid:null,lux:null,occupancy:null,ldr_adc:null,light_percent:null}),\n    read('scRelay','node2_actuator',{FAN:null,LIGHT:null,AUTO:null})\n]};\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": []
+  },
+  {
+    "id": "sc_response",
+    "type": "http response",
+    "z": "sc_data_tab",
+    "name": "JSON response",
+    "x": 850,
+    "y": 320,
+    "wires": [],
+    "statusCode": "",
+    "headers": {}
+  },
+  {
+    "id": "sc_status",
+    "type": "status",
+    "z": "sc_data_tab",
+    "name": "MQTT connection status",
+    "x": 210,
+    "y": 420,
+    "wires": [
+      [
+        "sc_clear"
+      ]
+    ],
+    "scope": [
+      "sc_sensor",
+      "sc_relay"
+    ]
+  },
+  {
+    "id": "sc_clear",
+    "type": "function",
+    "z": "sc_data_tab",
+    "name": "Clear disconnected cache",
+    "x": 550,
+    "y": 420,
+    "wires": [
+      []
+    ],
+    "func": "if (msg.status && msg.status.fill === 'red') { flow.set('scSensor',null); flow.set('scRelay',null); } return null;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": []
+  },
+  {
+    "id": "sc_catch",
+    "type": "catch",
+    "z": "sc_data_tab",
+    "name": "MySQL errors",
+    "x": 210,
+    "y": 500,
+    "wires": [
+      [
+        "sc_error"
+      ]
+    ],
+    "scope": [
+      "sc_mysql"
+    ],
+    "uncaught": false
+  },
+  {
+    "id": "sc_error",
+    "type": "debug",
+    "z": "sc_data_tab",
+    "name": "MySQL error details",
+    "x": 550,
+    "y": 500,
+    "wires": [],
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "error.message",
+    "targetType": "msg"
+  },
+  {
+    "id": "sc_broker",
+    "type": "mqtt-broker",
+    "name": "ESP32 MQTT broker",
+    "broker": "10.203.24.191",
+    "port": "1883",
+    "clientid": "",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "autoUnsubscribe": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthPayload": "",
+    "closeTopic": "",
+    "closeQos": "0",
+    "closePayload": "",
+    "willTopic": "",
+    "willQos": "0",
+    "willPayload": ""
+  },
+  {
+    "id": "sc_database",
+    "type": "MySQLdatabase",
+    "name": "smartclass_db - configure credentials",
+    "host": "127.0.0.1",
+    "port": "3306",
+    "db": "smartclass_db",
+    "tz": "+07:00",
+    "charset": "UTF8MB4"
+  }
+]

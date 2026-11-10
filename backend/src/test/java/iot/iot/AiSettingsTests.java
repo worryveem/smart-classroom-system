@@ -25,6 +25,8 @@ class AiSettingsTests {
         @Bean JdbcTemplate db() { return mock(JdbcTemplate.class); }
         @Bean AiSettingsController controller(JdbcTemplate db) { return new AiSettingsController(db); }
         @Bean iot.iot.ai.AutomationService automationService() { return mock(iot.iot.ai.AutomationService.class); }
+        @Bean iot.iot.ai.AiSuggestionService suggestionService() { return mock(iot.iot.ai.AiSuggestionService.class); }
+        @Bean iot.iot.ai.AiSuggestionController suggestionController(iot.iot.ai.AiSuggestionService service) { return new iot.iot.ai.AiSuggestionController(service); }
         @Bean iot.iot.ai.AutomationController automationController(iot.iot.ai.AutomationService service) { return new iot.iot.ai.AutomationController(service); }
     }
 
@@ -49,6 +51,17 @@ class AiSettingsTests {
             assertThrows(AccessDeniedException.class, () -> controller.get(actor));
             assertThrows(AccessDeniedException.class, () -> controller.put(new AiSettingsController.SettingsInput(true), actor));
             verifyNoInteractions(context.getBean(JdbcTemplate.class));
+        }
+    }
+
+    @Test void studentsCannotReadAnalyzeOrListAiHistory() {
+        try (var context = new AnnotationConfigApplicationContext(Config.class)) {
+            var controller = context.getBean(iot.iot.ai.AiSuggestionController.class);
+            var actor = actor(UserRole.STUDENT);
+            assertThrows(AccessDeniedException.class, () -> controller.status(101));
+            assertThrows(AccessDeniedException.class, () -> controller.history(101,actor));
+            assertThrows(AccessDeniedException.class, () -> controller.analyze(101,new iot.iot.ai.AiSuggestionService.AnalyzeInput(4000,false),actor));
+            verifyNoInteractions(context.getBean(iot.iot.ai.AiSuggestionService.class));
         }
     }
 

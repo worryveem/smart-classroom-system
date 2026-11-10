@@ -95,6 +95,18 @@ class AutomationTests {
             .thenReturn(List.of(Map.of("occupancy",false,"timestamp",now.minusSeconds(330)),Map.of("occupancy",false,"timestamp",now)));
         service.tick();verifyNoInteractions(control);
     }
+    @Test void enoughLightTurnsLightOffWhileNoMotionTimerIsStillWaiting() {
+        sample.put("occupancy",false);sample.put("lux",250.);
+        service.tick();
+        verify(control,times(1)).automatic(new iot.iot.dto.request.ControlRequest(ControlTarget.LIGHT,ControlAction.OFF));
+        verify(control,never()).automatic(new iot.iot.dto.request.ControlRequest(ControlTarget.FAN,ControlAction.OFF));
+        verify(control,never()).automatic(new iot.iot.dto.request.ControlRequest(ControlTarget.FAN,ControlAction.ON));
+    }
+    @Test void brightLightStillHonorsCooldownAndDoesNotTurnAnythingOnWithoutMotion() {
+        sample.put("occupancy",false);sample.put("lux",500.);
+        state.put("light_changed_at",ClassroomService.now().minusSeconds(10));
+        service.tick();verifyNoInteractions(control);
+    }
     @Test void teacherWithoutActiveBookingCannotChangeMode() {
         var user=mock(User.class);when(user.getRole()).thenReturn(UserRole.TEACHER);
         var actor=new CustomUserDetails(user);

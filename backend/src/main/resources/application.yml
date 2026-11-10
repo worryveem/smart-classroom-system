@@ -31,6 +31,8 @@ server:
     include-binding-errors: never
     include-stacktrace: never
 app:
+  ai:
+    base-url: ${AI_BASE_URL:http://127.0.0.1:8000}
   nodered:
     base-url: ${NODERED_BASE_URL:http://localhost:1880}
     state-path: ${NODERED_STATE_PATH:/smarthome/api/state}

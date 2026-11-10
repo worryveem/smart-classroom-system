@@ -134,6 +134,11 @@ public class AutomationService {
                     previous=time;
                 }
                 if(history.size()>10000 || start==null || previous==null || Duration.between(start,previous).getSeconds()<seconds) {
+                    if(l.doubleValue()>=number(state,"light_off")) {
+                        send(state,ControlTarget.LIGHT,ControlAction.OFF,measured);
+                        message("Đủ sáng; đã xét tắt đèn theo ngưỡng. Chưa có chuyển động, vẫn chờ đủ thời gian trước khi tắt do phòng vắng.");
+                        return;
+                    }
                     message("Chưa có chuyển động; đang chờ đủ thời gian trước khi tắt thiết bị."); return;
                 }
             }

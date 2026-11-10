@@ -33,6 +33,7 @@ build/
 .vscode/
 
 ### SmartClass local files ###
+.runtime/
 **/node_modules/
 **/dist/
 .env
@@ -45,6 +46,8 @@ build/
 .playwright/
 **/test-results/
 **/playwright-report/
+**/__pycache__/
+**/.pytest_cache/
 
 # Tracked local profile contains public development defaults only.
 !backend/src/main/resources/application-local.yml

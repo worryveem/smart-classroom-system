@@ -39,6 +39,9 @@ export function normalizeState(raw, sensorId = SENSOR_ID, actuatorId = ACTUATOR_
   const actuator = recordFor(raw, actuatorId) ?? flat
   const result = {
     temp: numeric(sensor.temp), humid: numeric(sensor.humid), lux: numeric(sensor.lux), occupancy: binary(sensor.occupancy),
+    luxEstimated: sensor.lux_estimated === true,
+    luxDemo: sensor.lux_demo === true,
+    luxQuality: sensor.lux_quality ?? null,
     FAN: binary(actuator.FAN), LIGHT: binary(actuator.LIGHT),
     sensorConnected: connection(recordFor(raw, sensorId)),
     actuatorConnected: connection(recordFor(raw, actuatorId)),

@@ -106,11 +106,11 @@ export default function ClassroomPage() {
   }
 
   return <div className="classroom-page">
-    <header className="classroom-heading"><div><p className="eyebrow">Nhà A · Phòng {roomId}</p><h1>Vận hành phòng học</h1><p>Phòng {roomId} · Lịch sử dụng, môi trường và bảo trì.</p><Link to="/building" className="classroom-back">← Xem tất cả phòng Nhà A</Link></div><button disabled={busy} onClick={() => setRevision(v => v + 1)}>Làm mới</button></header>
+    <header className="classroom-heading"><div><p className="eyebrow">Nhà A · Phòng {roomId}</p><h1>Vận hành phòng học</h1><p>Phòng {roomId} · Lịch sử dụng, môi trường và bảo trì.</p><Link to="/building" className="classroom-back action-button">← Xem tất cả phòng Nhà A</Link></div><button disabled={busy} onClick={() => setRevision(v => v + 1)}>Làm mới</button></header>
     {roomInfo && !iot && <div className="classroom-access"><strong>Phòng chưa kết nối IoT</strong><span>Vẫn quản lý lịch học và sự cố. Không có số liệu cảm biến hoặc điều khiển; không dùng dữ liệu phòng 101 thay thế.</span></div>}
     {contextError && <p className="classroom-note" role="status">{contextError}</p>}
     {roomInfo && roomInfo.status !== 'ACTIVE' && <div className="classroom-message error" role="status">Phòng đang bảo trì hoặc tạm ngưng. Không nhận đăng ký mới. {roomInfo.maintenance_note}</div>}
-    <p><Link className="classroom-back" to={`/iot/rooms/${roomId}`}>Mở trang IoT phòng {roomId} →</Link></p>
+    <p><Link className="classroom-back action-button" to={`/iot/rooms/${roomId}`}>Mở trang IoT phòng {roomId} →</Link></p>
     {permission && <div className="classroom-access"><strong>{permission.allowed ? 'Được phép điều khiển' : 'Chỉ theo dõi'}</strong><span>{permission.reason}. Quyền được Backend kiểm tra tại thời điểm gửi lệnh.</span></div>}
     <nav className="classroom-tabs" aria-label="Nghiệp vụ phòng học">{tabs.filter(([id]) => (id !== 'attempts' || (staff && iot)) && (id !== 'settings' || (admin && iot))).map(([id, label]) => <button key={id} aria-current={id === tab ? 'page' : undefined} onClick={() => { setTab(id); setNotice('') }} disabled={busy}>{label}</button>)}</nav>
     {error && <div className="classroom-message error" role="alert">{error}</div>}

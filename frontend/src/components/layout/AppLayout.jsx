@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
-import { CalendarDays, History, LayoutDashboard, LogOut, School, Settings, PanelsTopLeft, BrainCircuit, AlertTriangle } from 'lucide-react'
+import { CalendarDays, History, LayoutDashboard, LogOut, School, Settings, PanelsTopLeft, BrainCircuit, AlertTriangle, BellRing, TimerReset } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext.jsx'
 import NotificationBell from '../../features/notifications/NotificationBell.jsx'
 import '../../features/account/account.css'
@@ -9,7 +9,9 @@ const roleLabels = { ADMIN: 'Quản trị viên', TEACHER: 'Giáo viên', STUDEN
 export default function AppLayout() {
   const { user, logout } = useAuth()
   const links = [
-    ...(['ADMIN', 'TEACHER'].includes(user.role) ? [{ to: '/automation', label: 'Chế độ tự động', icon: BrainCircuit }] : []),
+    ...(['ADMIN', 'TEACHER'].includes(user.role) ? [{ to: '/abnormal-alerts', label: 'Cảnh báo bất thường', icon: BellRing }] : []),
+    ...(['ADMIN', 'TEACHER'].includes(user.role) ? [{ to: '/ai', label: 'Gợi ý AI', icon: BrainCircuit }] : []),
+    ...(['ADMIN', 'TEACHER'].includes(user.role) ? [{ to: '/automation', label: 'Chế độ tự động', icon: TimerReset }] : []),
     { to: '/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
     ...(user.role === 'TEACHER' ? [{ to: '/my-schedule', label: 'Lịch của tôi', icon: CalendarDays }] : []),
     { to: '/building', label: 'Phòng học', icon: School },

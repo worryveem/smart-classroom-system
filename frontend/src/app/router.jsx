@@ -14,6 +14,8 @@ const TeachingHistoryPage = lazy(() => import('../features/teaching/TeachingHist
 const NotificationsPage = lazy(() => import('../features/notifications/NotificationsPage.jsx'))
 const AccountPage = lazy(() => import('../features/account/AccountPage.jsx'))
 const AutomationPage = lazy(() => import('../features/automation/AutomationPage.jsx'))
+const AiPage = lazy(() => import('../features/ai/AiPage.jsx'))
+const AbnormalAlertsPage = lazy(() => import('../features/alerts/AbnormalAlertsPage.jsx'))
 const IncidentsPage = lazy(() => import('../features/incidents/IncidentsPage.jsx'))
 
 export const router = createBrowserRouter([
@@ -22,6 +24,8 @@ export const router = createBrowserRouter([
     element: <ProtectedRoute />,
     children: [{ element: <AppLayout />, children: [
       { path: '/', element: <Navigate to="/dashboard" replace /> },
+      { element: <RoleRoute roles={['ADMIN', 'TEACHER']} />, children: [{ path: '/abnormal-alerts', element: <Suspense fallback={<p role="status">Đang tải cảnh báo bất thường…</p>}><AbnormalAlertsPage /></Suspense> }] },
+      { element: <RoleRoute roles={['ADMIN', 'TEACHER']} />, children: [{ path: '/ai', element: <Suspense fallback={<p role="status">Đang tải gợi ý AI…</p>}><AiPage /></Suspense> }] },
       { path: '/incidents', element: <Suspense fallback={<p role="status">Đang tải báo cáo sự cố…</p>}><IncidentsPage /></Suspense> },
       { element: <RoleRoute roles={['ADMIN', 'TEACHER']} />, children: [{ path: '/automation', element: <Suspense fallback={<p role="status">Đang tải chế độ tự động…</p>}><AutomationPage /></Suspense> }] },
       { path: '/dashboard', element: <Suspense fallback={<p role="status">Đang tải tổng quan…</p>}><OverviewPage /></Suspense> },

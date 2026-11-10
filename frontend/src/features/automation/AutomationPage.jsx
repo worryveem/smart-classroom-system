@@ -83,7 +83,7 @@ export default function AutomationPage() {
         <div className="automation-detail"><Lightbulb size={23} aria-hidden="true" /><div><h3>Có chuyển động: điều khiển theo ngưỡng</h3><p>Quạt theo nhiệt độ, đèn theo ánh sáng. Mỗi thiết bị cách nhau ít nhất 60 giây giữa hai lần đổi trạng thái.</p></div></div>
         <div className="automation-detail"><Timer size={23} aria-hidden="true" /><div><h3>Không có chuyển động: chờ trước khi tắt</h3><p>Chỉ tắt cả hai thiết bị khi chuỗi mẫu PIR liên tục không có chuyển động đủ thời gian đã cấu hình. PIR không đo số người; người ngồi yên có thể không được phát hiện.</p></div></div>
       </section>
-      <p className="automation-footnote">Tắt tự động trước khi điều khiển thủ công. Khi giáo viên hết ca, hệ thống dừng tự động và giữ nguyên trạng thái thiết bị. <Link to="/iot/rooms/101">Mở thiết bị phòng 101</Link></p>
+      <p className="automation-footnote">Tắt tự động trước khi điều khiển thủ công. Khi giáo viên hết ca, hệ thống dừng tự động và giữ nguyên trạng thái thiết bị. <Link className="action-button" to="/iot/rooms/101">Mở thiết bị phòng 101</Link></p>
     </>}
   </div>
 }

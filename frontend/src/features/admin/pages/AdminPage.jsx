@@ -61,7 +61,7 @@ export default function AdminPage() {
         </>}
         <label>Bản ghi / trang<select value={current.size} onChange={event => change('size', event.target.value)}>{[10, 20, 50, 100].map(size => <option key={size} value={size}>{size} bản ghi</option>)}</select></label>
       </div><button className="admin-reset" onClick={() => setFilters(previous => ({ ...previous, [tab]: { ...defaults[tab] } }))}>Đặt lại bộ lọc</button></div>
-      {list.error && <div role="alert" className="admin-list-error"><AlertCircle size={18} /><div><p>{adminError(list.error, tab, 'list')}{list.data && ' Đang hiển thị dữ liệu lần tải trước.'}</p>{denied && <button className="text-button" onClick={auth.retry}>Kiểm tra lại quyền</button>}</div></div>}
+      {list.error && <div role="alert" className="admin-list-error"><AlertCircle size={18} /><div><p>{adminError(list.error, tab, 'list')}{list.data && ' Đang hiển thị dữ liệu lần tải trước.'}</p>{denied && <button className="action-button" onClick={auth.retry}>Kiểm tra lại quyền</button>}</div></div>}
       <section className="admin-results"><header><h2>{users ? 'Danh sách tài khoản' : 'Danh sách thiết bị'}</h2><span>{list.loading ? 'Đang tải…' : list.loadedAt ? `Lần tải: ${formatTime(list.loadedAt)}` : 'Chưa có dữ liệu'}</span></header>
         <ManagementTable scope={tab} rows={list.data?.rows ?? []} loading={list.loading} invalid={!valid} error={list.error} currentUser={auth.user} open={setDialog} disabled={list.loading || denied} />
         <Pagination data={list.data} loading={list.loading} label={users ? 'Phân trang người dùng' : 'Phân trang thiết bị'} setPage={page => setFilters(previous => ({ ...previous, [tab]: { ...previous[tab], page } }))} />
