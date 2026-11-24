@@ -1,0 +1,6 @@
+# Optional machine-specific configuration: copy as application-private.yml (gitignored)
+# and run with --spring.profiles.active=local,private. Prefer environment variables.
+spring:
+  datasource:
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}

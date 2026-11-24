@@ -1,0 +1,11 @@
+{
+    "features": [
+        "temp",
+        "humidity",
+        "light",
+        "motion"
+    ],
+    "model": "IsolationForest",
+    "contamination": 0.02,
+    "version": "1.0"
+}

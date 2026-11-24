@@ -1,0 +1,7 @@
+.table-pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; min-height: 70px; padding: 16px 24px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
+.table-pagination > p { margin: 0; }.table-pagination strong { color: var(--ink); font-weight: 600; }
+.table-pagination > nav { display: flex; align-items: center; gap: 6px; }.table-pagination nav > span { padding: 0 6px; font-size: 11px; }
+.table-pagination button { display: grid; place-items: center; width: 34px; min-height: 34px; padding: 7px; color: var(--primary); background: white; border: 1px solid var(--line); border-radius: 7px; }
+.table-pagination button:hover:not(:disabled) { border-color: #b1bced; background: var(--primary-soft); }
+.table-pagination button:disabled { opacity: .4; }
+@media (max-width: 600px) { .table-pagination { padding: 15px 16px; font-size: 10px; gap: 13px; }.table-pagination > nav { gap: 4px; }.table-pagination nav > span { padding: 0 3px; font-size: 10px; }.table-pagination button { width: 32px; min-height: 36px; } }
